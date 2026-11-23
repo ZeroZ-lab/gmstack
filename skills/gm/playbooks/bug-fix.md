@@ -16,6 +16,6 @@ Every line that ships traces to evidence. A change that "might help" is a hypoth
 10. Independent review with the `review` skill, giving the reviewer the symptom, the root cause, and the before/after evidence.
 11. Fix blocking findings; rerun verify; send behavior-changing fixes to a fresh reviewer.
 12. Record: update affected CHECKLIST.md rows (QA-02 and others) with the `checklist` skill and run its *Count* script; add an open risk if no correct test seam existed; add a CHANGELOG `Unreleased` entry.
-13. Final verify: if any file changed since the step-8 run (fixes, docs, CHECKLIST.md), run the `verify` skill again. Report only this last run.
+13. Run the `deslop` skill on the diff. Then the final verify: if any file changed since the step-8 run (fixes, deslop, docs, CHECKLIST.md), run the `verify` skill again. Report only this last run.
 14. Commit only if the user or AGENTS.md allows it, the regression test with or before the fix. Never push.
 15. Report: what was broken; the root cause and the evidence for it; the fix; the red output before and the green output after (trimmed to the assertion and counts), as tdd evidence lines; the final verify result; review verdict; CHECKLIST rows changed and the *Count* output; principles applied; what is not verified.

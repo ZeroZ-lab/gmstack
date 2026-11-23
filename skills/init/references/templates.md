@@ -77,6 +77,7 @@ At tier M the README also carries the requirements (PRD-01): user stories with a
 *.pem
 *.key
 reports/
+.gm/trail/
 ```
 
 ## Initial commit message

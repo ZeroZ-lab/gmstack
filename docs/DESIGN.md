@@ -1,6 +1,8 @@
 # gmstack 设计草案 v0.1
 
-> 状态：设计已定稿，M0、M1 已实现。决策汇总见第 12 节。skill 正文用英文，本设计文档仍用中文。
+> 状态：设计已定稿，M0、M1、M2 已实现。决策汇总见第 12 节。skill 正文用英文，本设计文档仍用中文。
+>
+> M2 偏离原设计的一处：hook 开关没有做成 `setup` 命令，而是用环境变量 `GMSTACK_ROUTING=off`、项目级 `.gmstack/routing`、用户级 `~/.config/gmstack/routing` 三种方式，免得为一个开关多占一个 skill 名额。M3 计划中的路由评测提前做了基础版（`evals/routing.json` + `scripts/eval-routing.mjs`）。
 >
 > M1 的 tdd / plan / review / bug-fix 参考了 superpowers（test-driven-development、writing-plans、code-reviewer、systematic-debugging）、mattpocock（tdd、code-review、diagnosing-bugs）和 pstack（tdd、architect、bug-fix、feature）。
 > 骨架参考 [pstack-claude](https://github.com/michael-denyer/pstack-claude)，底座是现有的 `checklist-project-init`（工程 checklist v1.2）。

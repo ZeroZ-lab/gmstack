@@ -13,6 +13,6 @@
 9. Fix blocking findings; rerun verify; send behavior-changing fixes to a fresh reviewer.
 10. Update docs the feature changes (README usage, CHANGELOG `Unreleased`).
 11. Record: update CHECKLIST.md rows this work moves (PRD-02, QA-01, QA-02, and any others) with the `checklist` skill, then run its *Count* script.
-12. Final verify: if any file changed since the step-6 run (fixes, docs, CHECKLIST.md), run the `verify` skill again. Report only this last run.
+12. Run the `deslop` skill on the diff. Then the final verify: if any file changed since the step-6 run (fixes, deslop, docs, CHECKLIST.md), run the `verify` skill again. Report only this last run.
 13. Commit only if the user or AGENTS.md allows it, in small verified units (test with or before its code). Never push.
 14. Report: what was built; a table of acceptance criteria, each with its test (tdd red/green line) and its real-surface run (command → output); the chosen shape and why; the final verify result; review verdict and how each finding was resolved; CHECKLIST rows changed and the *Count* output; principles applied; what is not done or not verified.

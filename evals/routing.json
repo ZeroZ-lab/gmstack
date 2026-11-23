@@ -1,0 +1,29 @@
+{
+  "description": "Routing eval: prompts never name a skill. 'expect' is a playbook name (gm must be invoked and that playbook read), 'skill:<name>' (that gmstack skill must be invoked, directly or via gm), or 'direct' (no gmstack skill invoked). Alternatives are separated by '|'; any one passing passes the case.",
+  "cases": [
+    { "id": "feature", "fixture": "project", "expect": "feature",
+      "prompt": "Add a --json flag that prints the result as {\"sum\": N} instead of a bare number." },
+    { "id": "bug-fix", "fixture": "project", "expect": "bug-fix",
+      "prompt": "Running `tinycalc -0` prints -0, but it should print 0." },
+    { "id": "refactor", "fixture": "project", "expect": "refactor",
+      "prompt": "src/sum.ts has grown messy. Split the argument parsing out into its own module without changing any behavior." },
+    { "id": "investigation", "fixture": "project", "expect": "investigation",
+      "prompt": "Why does tinycalc reject `1e3`? Where in the code is that decided?" },
+    { "id": "prototype", "fixture": "project", "expect": "prototype",
+      "prompt": "Would a decimal library be faster than the current BigInt approach for summing? Try both quickly and tell me which one to keep." },
+    { "id": "review", "fixture": "project", "expect": "review",
+      "prompt": "Look over the most recent commit and tell me if anything in it is wrong." },
+    { "id": "gate", "fixture": "project", "expect": "gate",
+      "prompt": "Are we ready to ship 0.1.0?" },
+    { "id": "progress", "fixture": "project", "expect": "progress",
+      "prompt": "How far along is this project, and what should I work on next?" },
+    { "id": "handoff", "fixture": "project", "expect": "handoff",
+      "prompt": "I need to stop for today. Save where things stand so I can pick this up tomorrow." },
+    { "id": "init", "fixture": "empty", "expect": "init|skill:init",
+      "prompt": "Set up a new Python command-line project here called wordcount that counts words in files." },
+    { "id": "direct-question", "fixture": "project", "expect": "direct",
+      "prompt": "In general terms, what does `git commit --amend` do? One sentence." },
+    { "id": "unslop", "fixture": "project", "expect": "skill:unslop",
+      "prompt": "The README reads like a chatbot wrote it. Tighten the wording of its first section." }
+  ]
+}

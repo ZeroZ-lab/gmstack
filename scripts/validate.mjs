@@ -9,6 +9,8 @@
 //      those folders is listed (no orphans)
 //   5. every checklist item ID in the catalog is unique and every GATE ID is present
 //   6. package.json version matches plugin.json version
+//   7. hooks/hooks.json parses, every hook script it names exists and is executable, and
+//      every `gmstack:<skill>` named in hooks/routing.md is a real skill
 import { readFileSync, readdirSync, existsSync, statSync } from "node:fs";
 import { join, dirname, resolve, relative } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -80,6 +82,29 @@ for (const id of ids) { if (seen.has(id)) fail(`catalog: duplicate ID ${id}`); s
 for (let i = 1; i <= 12; i++) {
   const id = `GATE-${String(i).padStart(2, "0")}`;
   if (!seen.has(id)) fail(`catalog: missing ${id}`);
+}
+
+// 7. hooks
+if (existsSync(join(root, "hooks/hooks.json"))) {
+  try {
+    const hooks = JSON.parse(read("hooks/hooks.json")).hooks ?? {};
+    for (const groups of Object.values(hooks)) {
+      for (const g of groups) for (const h of g.hooks ?? []) {
+        for (const [, rel] of (h.command ?? "").matchAll(/\$\{CLAUDE_PLUGIN_ROOT\}\/([^"'\s]+)/g)) {
+          const abs = join(root, rel);
+          if (!existsSync(abs)) fail(`hooks.json: script ${rel} does not exist`);
+          else if (!(statSync(abs).mode & 0o111)) fail(`hooks.json: script ${rel} is not executable`);
+        }
+      }
+    }
+  } catch (e) {
+    fail(`hooks.json: ${e.message}`);
+  }
+  if (existsSync(join(root, "hooks/routing.md"))) {
+    for (const [, name] of read("hooks/routing.md").matchAll(/gmstack:([a-z][a-z0-9-]*)/g)) {
+      if (!skillDirs.includes(name)) fail(`hooks/routing.md: names unknown skill gmstack:${name}`);
+    }
+  }
 }
 
 if (problems.length) {

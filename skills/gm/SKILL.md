@@ -1,13 +1,13 @@
 ---
 name: gm
-description: gmstack's entry point. Routes a software task to the right playbook (feature, bug fix, review, init, release gate, progress) and runs it evidence-first — plan, test-first change, verify, independent review, record evidence in CHECKLIST.md. Use for /gm, for any task that touches more than one file or a shared signature, involves a design choice, is a bug with an unknown cause, asks for a code review, or asks whether a gmstack project is ready to release or how far along it is.
+description: gmstack's entry point. Routes a software task to the right playbook (feature, bug fix, refactor, investigation, prototype, review, init, release gate, progress, handoff) and runs it evidence-first — plan, test-first change, verify, independent review, record evidence in CHECKLIST.md. Use for /gm, for any task that touches more than one file or a shared signature, involves a design choice, is a bug with an unknown cause, asks for a refactor, an investigation, a prototype, or a code review, asks to pause or resume work, or asks whether a gmstack project is ready to release or how far along it is.
 ---
 
 # gm
 
 Tell `gm` the goal. It picks a playbook, copies the playbook's steps into the task list, runs them, and reports with evidence.
 
-Skills in this plugin sit beside this one: `../init/`, `../checklist/`, `../verify/`, `../plan/`, `../tdd/`, `../review/`. Playbooks are in `playbooks/`, principles in `references/principles/`.
+Skills in this plugin sit beside this one: `../init/`, `../checklist/`, `../verify/`, `../plan/`, `../tdd/`, `../review/`, `../deslop/`, `../unslop/`. Playbooks are in `playbooks/`, principles in `references/principles/`.
 
 ## Non-negotiables
 
@@ -30,13 +30,17 @@ Skills in this plugin sit beside this one: `../init/`, `../checklist/`, `../veri
 |---|---|
 | [feature](playbooks/feature.md) | adding new behavior: a feature, option, endpoint, screen |
 | [bug-fix](playbooks/bug-fix.md) | something is broken, throwing, wrong, or failing |
+| [refactor](playbooks/refactor.md) | restructuring code without changing behavior: rename, extract, move, simplify, migrate callers |
+| [investigation](playbooks/investigation.md) | a question, not a change: "why does X happen?", "how does Y work?", "is this safe?" |
+| [prototype](playbooks/prototype.md) | settling a decision by trying it: spike, proof of concept, "would A or B be faster?" |
 | [review](playbooks/review.md) | reviewing a branch, PR, commit range, or uncommitted changes |
 | [init](playbooks/init.md) | creating a new project or onboarding an existing repo |
 | [gate](playbooks/gate.md) | "can we release?", "is this ready to ship?", pre-release check |
 | [progress](playbooks/progress.md) | "how far along are we?", "check progress", "what's next?" |
+| [handoff](playbooks/handoff.md) | pausing work for later or someone else; resuming paused work |
 
-3. No playbook fits (refactor, investigation, prototype…) → run the **default loop**. Dedicated playbooks for these arrive in later gmstack versions.
-4. Copy the chosen playbook's steps into the task list verbatim. A step you choose not to do stays in the list as `skip: <reason>`.
+3. No playbook fits → run the **default loop**.
+4. **Read the chosen playbook file in full before doing anything else.** The table above is only an index; the steps live in the file, and working from the table alone skips them. Then copy the playbook's steps into the task list verbatim. A step you choose not to do stays in the list as `skip: <reason>`.
 
 Small, contained work — one file with an obvious test, a question, a one-line edit — does not need a playbook. Do it directly and still verify on the real artifact.
 
@@ -48,8 +52,9 @@ Small, contained work — one file with an obvious test, a question, a one-line 
 4. **Change** — only files in scope. Behavior changes go through the `tdd` skill.
 5. **Verify** — run the `verify` skill. For a bug, rerun the failing command and show it now passes.
 6. **Independent review** — use the `review` skill: a fresh subagent checks spec fit, correctness, tests, standards, protected files, and your evidence. Fix blocking findings, then verify again.
-7. **Record** — update CHECKLIST.md rows this work affects, via the `checklist` skill.
-8. **Report** — see *Writing the report*.
+7. **Clean** — run the `deslop` skill on the diff before anything is committed.
+8. **Record** — update CHECKLIST.md rows this work affects, via the `checklist` skill.
+9. **Report** — see *Writing the report*.
 
 ## Principles
 
@@ -86,7 +91,7 @@ Read a principle's file in full before applying it, and in the report name each 
 
 ## Writing the report
 
-Short declarative sentences. Lead with what changed for the user. Label each claim: measured (with evidence), inferred, or guess. Never hand the user a check you could have run.
+Write it, and any docs, PR description, or commit message, per the `unslop` skill. Short declarative sentences. Lead with what changed for the user. Label each claim: measured (with evidence), inferred, or guess. Never hand the user a check you could have run.
 
 **The verify result you report must come from a run after your last edit**, including edits to CHECKLIST.md, CHANGELOG, and docs. Changed anything after the last run? Run verify again before reporting.
 
