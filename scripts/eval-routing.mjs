@@ -42,7 +42,9 @@ if (selected.some((c) => c.fixture === "project") && !fixture) {
 // A run cut short by a usage/rate limit or an API error measures nothing; report it as
 // INCOMPLETE instead of scoring it.
 const incompleteReason = (out) => {
-  const result = out.split("\n").map((l) => { try { return JSON.parse(l); } catch { return null; } }).find((m) => m?.type === "result");
+  // A run can emit several result messages (e.g. one per turn when a background subagent
+  // resumes it); the last one is how the run ended.
+  const result = out.split("\n").map((l) => { try { return JSON.parse(l); } catch { return null; } }).filter((m) => m?.type === "result").pop();
   if (!result) return "no result (killed or crashed)";
   const text = String(result.result ?? "");
   if (/hit your .*limit|usage limit|rate limit/i.test(text)) return text.split("\n")[0];

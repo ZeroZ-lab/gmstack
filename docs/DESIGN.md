@@ -164,7 +164,7 @@ scripts/check-playbooks.mjs
 docs/DESIGN.md
 ```
 
-- 发布后在 gm-skills 的 external-plugins.json 里登记为外部插件。
+- 已在 gm-skills 的 `.claude-plugin/external-plugins.json` 里登记为外部插件（只进 Claude marketplace），也可以直接用本仓库自带的 `marketplace.json` 安装。
 
 ## 11. 里程碑
 
@@ -190,3 +190,18 @@ docs/DESIGN.md
 - 原则放在 `skills/gm/references/principles/`，不做成独立 skill（理由见第 7 节）
 
 暂无待定项。
+
+## 13. 评测记录
+
+流程评测（`scripts/eval-flow.mjs`）暴露过的问题和对应修改。数字是 sonnet、tinycalc fixture 上的结果，单个用例用 `--repeat 3` 统计。
+
+| 现象 | 原因 | 修改 |
+|---|---|---|
+| Agent 照着做测试先行，但不调用 `tdd` skill；`count.mjs`、`deslop` 被跳过 | 步骤里"用 X skill"被当成建议 | `gm` 加规则：步骤点名的 skill 必须用 Skill 工具调用 |
+| bug 原因一眼可见时直接改代码，跳过回归测试 | `gm` 写着"小改动不需要 playbook"，bug-fix 的 When 写着"原因未证实" | bug 报告一律走 bug-fix；明显的原因在回归测试变红之前也只是假设 |
+| 从来不建任务列表，"报告前核对任务列表"从未生效 | headless 下 `TaskCreate` 是延迟加载工具，要先 `ToolSearch` | 每个 playbook 开头加 **Start** 行，写明加载方式；`validate` 检查这一行 |
+| `deslop` 以"diff 很小，没什么可清理"为由跳过 | 把 skill 的结论提前下了 | "没什么可做"是 skill 跑完后给的结论；`deslop` 无改动时也要输出一行证据 |
+| 撞到 5 小时额度的运行被算成低分 | 评测脚本不区分"失败"和"没跑完" | 两个评测脚本识别为 INCOMPLETE，退出码 3，不计入比率 |
+
+bug-fix 用例（各 3 次）：完成率 79% → 91%（`tdd` 修好）→ 100%（`deslop` 修好，33/33，每步 3/3）。同一版本下 feature 两个用例 20/20，路由评测 15/15。经验：规则写在 agent 动手前最后读到的文件里（playbook 开头）比写在入口 skill 里更管用；能被工具摩擦打断的步骤（延迟加载）要把绕过方法写出来。
+

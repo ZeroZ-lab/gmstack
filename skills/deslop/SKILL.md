@@ -11,6 +11,8 @@ Clean the **current change** so it reads like the rest of the codebase. Behavior
 
 The diff of this change only: `git diff <base>...HEAD` plus uncommitted work (`git diff HEAD`). The base is the PR's base branch, else the branch this one was cut from, else the default branch. Never edit lines outside the diff, even if they are sloppy — mention them instead.
 
+A small diff still gets the pass. "Nothing to clean" is this skill's verdict, reached by reading every changed hunk against the table below; it is not a reason to skip running it.
+
 ## What to remove or fix
 
 | Slop | Fix |
@@ -36,3 +38,5 @@ The diff of this change only: `git diff <base>...HEAD` plus uncommitted work (`g
 ## Report
 
 One or two sentences: what kinds of slop were removed and how many edits, the verify result, and any slop left in place with the reason (outside the diff, or a type that cannot be fixed in scope).
+
+When nothing needed removing, the report is still one line: `deslop: <N> files, <M> hunks checked; nothing to clean`. That line is the evidence the step ran.

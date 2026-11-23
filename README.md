@@ -74,6 +74,8 @@ claude plugin marketplace add ZeroZ-lab/gmstack
 claude plugin install gmstack@gmstack
 ```
 
+It is also listed in the [gm-skills](https://github.com/ZeroZ-lab/gm-skills) marketplace: `/plugin marketplace add ZeroZ-lab/gm-skills`, then `/plugin install gmstack@gm-skills`.
+
 ## Try it locally
 
 To run a checkout without installing it:
