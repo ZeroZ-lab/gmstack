@@ -11,7 +11,8 @@
 //   6. package.json version matches plugin.json version
 //   7. hooks/hooks.json parses, every hook script it names exists and is executable, and
 //      every `gmstack:<skill>` named in hooks/routing.md is a real skill
-//   8. every bundled playbook has numbered steps (project playbooks anchor on them)
+//   8. every bundled playbook has numbered steps (project playbooks anchor on them) and the
+//      **Start** line that makes the agent build the task list and invoke named skills
 //   9. evals/*.json parse; every case names a real overlay, a known expectation or marker
 //      kind, and a playbook or skill that exists
 import { readFileSync, readdirSync, existsSync, statSync } from "node:fs";
@@ -114,6 +115,9 @@ if (existsSync(join(root, "hooks/hooks.json"))) {
 const { loadBundled } = await import("../skills/gm/scripts/check-playbooks.mjs");
 const bundled = loadBundled();
 for (const [name, p] of bundled) if (!p.steps.length) fail(`skills/gm/playbooks/${name}.md: no numbered steps`);
+for (const name of bundled.keys()) {
+  if (!/^\*\*Start\*\*: before step 1, create the task list/m.test(read(`skills/gm/playbooks/${name}.md`))) fail(`skills/gm/playbooks/${name}.md: missing the **Start** line (task list + invoke named skills)`);
+}
 
 // 9. eval suites
 const overlayOk = (c, file) => {
@@ -142,8 +146,9 @@ if (existsSync(join(root, "evals/flow.json"))) {
       for (const step of c.steps) for (const m of step.any) {
         const [kind, ...rest] = m.split(":");
         if (m === "agent") continue;
-        if (!["skill", "read", "bash", "changed"].includes(kind)) fail(`evals/flow.json: case ${c.id} step ${step.id} has unknown marker "${m}"`);
+        if (!["skill", "read", "bash", "changed", "tool"].includes(kind)) fail(`evals/flow.json: case ${c.id} step ${step.id} has unknown marker "${m}"`);
         else if (kind === "skill") nameOk("evals/flow.json", c.id, "skill", rest.join(":"));
+        else if (kind === "tool") continue;
         else try { new RegExp(rest.join(":")); } catch (e) { fail(`evals/flow.json: case ${c.id} step ${step.id}: ${e.message}`); }
       }
     }

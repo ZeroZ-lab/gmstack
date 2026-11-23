@@ -2,6 +2,8 @@
 
 **When**: a decision could be settled by trying it — "would approach A or B be faster?", "can library X do Y?", "will this design work?" — or the user asks for a spike or proof of concept.
 
+**Start**: before step 1, create the task list from the steps below: one `TaskCreate` per step, verbatim. If `TaskCreate` is listed but not loaded, load it first with `ToolSearch` (`select:TaskCreate,TaskUpdate,TaskList`). A step that names a skill invokes it with the Skill tool, even when the change looks trivial.
+
 A prototype answers a question. It is thrown away or rebuilt properly; it never slides into the product unreviewed.
 
 1. Restate the question the prototype must answer, and the **decision criteria** written before building: what result picks which option (a number, a pass/fail behavior).

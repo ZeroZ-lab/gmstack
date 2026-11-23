@@ -2,6 +2,8 @@
 
 **When**: the user asks whether the project can be released, is ready to ship, or wants a pre-release check.
 
+**Start**: before step 1, create the task list from the steps below: one `TaskCreate` per step, verbatim. If `TaskCreate` is listed but not loaded, load it first with `ToolSearch` (`select:TaskCreate,TaskUpdate,TaskList`). A step that names a skill invokes it with the Skill tool, even when the change looks trivial.
+
 The answer is **releasable** or **not releasable**, with the blockers. There is no "mostly releasable".
 
 1. Restate the goal: decide whether `<project>` at `<commit>` can be released.

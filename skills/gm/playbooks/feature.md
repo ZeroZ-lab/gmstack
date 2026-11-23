@@ -2,6 +2,8 @@
 
 **When**: adding new behavior — a feature, an option, an endpoint, a screen.
 
+**Start**: before step 1, create the task list from the steps below: one `TaskCreate` per step, verbatim. If `TaskCreate` is listed but not loaded, load it first with `ToolSearch` (`select:TaskCreate,TaskUpdate,TaskList`). A step that names a skill invokes it with the Skill tool, even when the change looks trivial.
+
 1. Restate the goal and the smallest change that delivers it.
 2. Write the acceptance criteria as observable behavior. Take them from the PRD or README requirements if they exist; otherwise write them and add them there (PRD-02). Unclear criteria with the user around → ask once; user away → state your assumption and continue.
 3. Investigate: read the code the feature touches — callers, callees, data, config, existing tests.

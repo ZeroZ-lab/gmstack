@@ -2,6 +2,8 @@
 
 **When**: the user asks to review a branch, a PR, a commit range, or work-in-progress changes.
 
+**Start**: before step 1, create the task list from the steps below: one `TaskCreate` per step, verbatim. If `TaskCreate` is listed but not loaded, load it first with `ToolSearch` (`select:TaskCreate,TaskUpdate,TaskList`). A step that names a skill invokes it with the Skill tool, even when the change looks trivial.
+
 The output is a review, not a fix. Change code only if the user asks.
 
 1. Restate the goal: review `<range>` against `<spec or stated goal>`.

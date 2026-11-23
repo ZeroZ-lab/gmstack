@@ -1,6 +1,8 @@
 # Playbook: bug-fix
 
-**When**: something is broken, throwing, wrong, or failing, and the cause is not yet proven.
+**When**: something is broken, throwing, wrong, or failing — even when the cause looks obvious. An obvious cause is still unproven until the regression test goes red.
+
+**Start**: before step 1, create the task list from the steps below: one `TaskCreate` per step, verbatim. If `TaskCreate` is listed but not loaded, load it first with `ToolSearch` (`select:TaskCreate,TaskUpdate,TaskList`). A step that names a skill invokes it with the Skill tool, even when the change looks trivial.
 
 Every line that ships traces to evidence. A change that "might help" is a hypothesis, not a fix; if evidence refutes it, revert it.
 
@@ -9,13 +11,13 @@ Every line that ships traces to evidence. A change that "might help" is a hypoth
 3. **Minimize**: cut inputs, steps, and config one at a time, rerunning the loop each time, until every remaining element is needed to go red.
 4. **Hypothesize**: write 3–5 ranked, falsifiable hypotheses ("if X is the cause, changing Y makes it disappear"). Test them one variable at a time, cheapest split first. Tag any temporary debug output with a unique prefix (e.g. `[DBG-7f3a]`) so it can be removed by one search. Two failed fixes on the same assumption → read [attack-the-premise](../references/principles/attack-the-premise.md).
 5. **Confirm the root cause** with runtime evidence, and trace it to the first place the system went wrong (see [fix-root-causes](../references/principles/fix-root-causes.md)). If the fix would change an interface, schema, ownership, or a security or concurrency guarantee, run the `plan` skill first.
-6. **Regression test** with the `tdd` skill: turn the minimized repro into a test at a correct seam; its red run must show the user's symptom. No correct seam → record that as a finding and keep the step-2 loop as the regression check.
+6. **Regression test**: invoke the `tdd` skill, then turn the minimized repro into a test at a correct seam; its red run must show the user's symptom. No correct seam → record that as a finding and keep the step-2 loop as the regression check.
 7. **Fix**: the smallest change the evidence justifies.
 8. Rerun the regression test and the original, un-minimized step-2 loop: both green. Then run the `verify` skill.
 9. Clean up: remove every tagged debug line (search for the prefix) and any throwaway harness.
 10. Independent review with the `review` skill, giving the reviewer the symptom, the root cause, and the before/after evidence.
 11. Fix blocking findings; rerun verify; send behavior-changing fixes to a fresh reviewer.
 12. Record: update affected CHECKLIST.md rows (QA-02 and others) with the `checklist` skill and run its *Count* script; add an open risk if no correct test seam existed; add a CHANGELOG `Unreleased` entry.
-13. Run the `deslop` skill on the diff. Then the final verify: if any file changed since the step-8 run (fixes, deslop, docs, CHECKLIST.md), run the `verify` skill again. Report only this last run.
+13. Invoke the `deslop` skill on the diff. Then the final verify: if any file changed since the step-8 run (fixes, deslop, docs, CHECKLIST.md), run the `verify` skill again. Report only this last run.
 14. Commit only if the user or AGENTS.md allows it, the regression test with or before the fix. Never push.
 15. Report: what was broken; the root cause and the evidence for it; the fix; the red output before and the green output after (trimmed to the assertion and counts), as tdd evidence lines; the final verify result; review verdict; CHECKLIST rows changed and the *Count* output; principles applied; what is not verified.

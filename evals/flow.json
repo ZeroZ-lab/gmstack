@@ -1,5 +1,5 @@
 {
-  "description": "Flow eval: does gmstack carry a task through its playbook's steps, not just route it? Each case may run a 'setup' shell command in the copy first (committed as the baseline, e.g. to plant a bug), then runs a real, writable task on a throwaway copy of the fixture and checks the transcript and the resulting files for one marker per playbook step. A step passes when any of its markers is found. Markers: 'skill:<name>' (the gmstack skill was invoked, or its SKILL.md read), 'read:<regex>' (a file whose path matches was read), 'bash:<regex>' (a shell command matched), 'agent' (a subagent was spawned), 'changed:<regex>' (a file whose path matches was added or modified, committed or not). Completion rate = steps passed / steps checked.",
+  "description": "Flow eval: does gmstack carry a task through its playbook's steps, not just route it? Each case may run a 'setup' shell command in the copy first (committed as the baseline, e.g. to plant a bug), then runs a real, writable task on a throwaway copy of the fixture and checks the transcript and the resulting files for one marker per playbook step. A step passes when any of its markers is found. Markers: 'skill:<name>' (the gmstack skill was invoked, or its SKILL.md read), 'read:<regex>' (a file whose path matches was read), 'bash:<regex>' (a shell command matched), 'agent' (a subagent was spawned), 'tool:<name>' (that tool was called), 'changed:<regex>' (a file whose path matches was added or modified, committed or not). Completion rate = steps passed / steps checked.",
   "cases": [
     {
       "id": "feature",
@@ -17,6 +17,13 @@
           "any": [
             "read:skills/gm/playbooks/feature\\.md$",
             "bash:check-playbooks\\.mjs.*--show[ =]+feature"
+          ]
+        },
+        {
+          "id": "task-list",
+          "any": [
+            "tool:TaskCreate",
+            "tool:TodoWrite"
           ]
         },
         {
@@ -94,6 +101,13 @@
           ]
         },
         {
+          "id": "task-list",
+          "any": [
+            "tool:TaskCreate",
+            "tool:TodoWrite"
+          ]
+        },
+        {
           "id": "reproduce",
           "any": [
             "bash:(dist/cli\\.js|tinycalc|npm start).*--precision"
@@ -166,6 +180,13 @@
           "id": "resolved-playbook",
           "any": [
             "bash:check-playbooks\\.mjs.*--show[ =]+feature"
+          ]
+        },
+        {
+          "id": "task-list",
+          "any": [
+            "tool:TaskCreate",
+            "tool:TodoWrite"
           ]
         },
         {

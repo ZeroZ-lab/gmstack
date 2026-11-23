@@ -2,6 +2,8 @@
 
 **When**: restructuring code without changing what it does — renaming, extracting, moving, simplifying, replacing an internal API, migrating callers.
 
+**Start**: before step 1, create the task list from the steps below: one `TaskCreate` per step, verbatim. If `TaskCreate` is listed but not loaded, load it first with `ToolSearch` (`select:TaskCreate,TaskUpdate,TaskList`). A step that names a skill invokes it with the Skill tool, even when the change looks trivial.
+
 The contract is **behavior unchanged**, proven by tests that ran before and after. A refactor that changes behavior is a feature or a fix: stop and switch playbooks.
 
 1. Restate the goal: what gets simpler, and the target shape.

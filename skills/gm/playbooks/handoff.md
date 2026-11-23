@@ -2,6 +2,8 @@
 
 **When**: pausing work for later or for someone else ("let's stop here", "hand this off", "I'll continue tomorrow"), or picking work back up ("continue where we left off", "resume").
 
+**Start**: before step 1, create the task list from the steps below: one `TaskCreate` per step, verbatim. If `TaskCreate` is listed but not loaded, load it first with `ToolSearch` (`select:TaskCreate,TaskUpdate,TaskList`). A step that names a skill invokes it with the Skill tool, even when the change looks trivial.
+
 The handoff note lives in `.gm/trail/<task-slug>.md`. `.gm/trail/` is git-ignored: notes are local working state, not project history.
 
 ## Pause

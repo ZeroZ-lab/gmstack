@@ -2,6 +2,8 @@
 
 **When**: the user asks how far along the project is, to check progress, or what to do next.
 
+**Start**: before step 1, create the task list from the steps below: one `TaskCreate` per step, verbatim. If `TaskCreate` is listed but not loaded, load it first with `ToolSearch` (`select:TaskCreate,TaskUpdate,TaskList`). A step that names a skill invokes it with the Skill tool, even when the change looks trivial.
+
 1. Restate the goal: report where `<project>` stands against its checklist.
 2. Read CHECKLIST.md. Missing → offer the init playbook and stop.
 3. Run the `verify` skill, so test, lint, and secret-scan evidence is current.

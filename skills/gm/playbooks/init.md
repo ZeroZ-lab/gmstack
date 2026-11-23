@@ -2,6 +2,8 @@
 
 **When**: creating a new project, or bringing an existing repo under gmstack.
 
+**Start**: before step 1, create the task list from the steps below: one `TaskCreate` per step, verbatim. If `TaskCreate` is listed but not loaded, load it first with `ToolSearch` (`select:TaskCreate,TaskUpdate,TaskList`). A step that names a skill invokes it with the Skill tool, even when the change looks trivial.
+
 1. Restate the goal: project name, what it is for, new or onboard.
 2. Run the `init` skill's Step 0 (mode) and Step 1 (collect). Ask all questions in one batch.
 3. Run the `init` skill's Step 2 (skeleton). In onboard mode, list existing files that were left untouched.

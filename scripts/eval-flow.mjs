@@ -3,7 +3,8 @@
 //
 // Usage:
 //   node scripts/eval-flow.mjs --fixture <path to a gmstack-managed git repo> [--model sonnet]
-//                              [--only id,id] [--concurrency 2] [--max-turns 150] [--timeout-min 30]
+//                              [--only id,id] [--repeat 1] [--concurrency 2] [--max-turns 150]
+//                              [--timeout-min 30]
 //
 // Each case copies the fixture (plus an optional overlay from evals/overlays/) into a temp
 // directory and runs headless Claude Code there with this plugin loaded, edits accepted, and
@@ -30,10 +31,13 @@ const concurrency = Number(args.concurrency ?? 2);
 const maxTurns = String(args["max-turns"] ?? 150);
 const timeoutMs = Number(args["timeout-min"] ?? 30) * 60_000;
 const only = args.only ? new Set(args.only.split(",")) : null;
+const repeat = Math.max(1, Number(args.repeat ?? 1));
 if (!fixture) { console.error("eval-flow: --fixture <path> is required"); process.exit(2); }
 
 const { cases } = JSON.parse(readFileSync(join(root, "evals/flow.json"), "utf8"));
-const selected = cases.filter((c) => !only || only.has(c.id));
+const chosen = cases.filter((c) => !only || only.has(c.id));
+// --repeat N runs each case N times (ids get a #n suffix) to show how stable each step is.
+const selected = chosen.flatMap((c) => (repeat === 1 ? [c] : Array.from({ length: repeat }, (_, i) => ({ ...c, id: `${c.id}#${i + 1}`, base: c.id }))));
 const outDir = mkdtempSync(join(tmpdir(), "gmstack-flow-"));
 // A run cut short by a usage/rate limit or an API error measures nothing; report it as
 // INCOMPLETE instead of scoring it.
@@ -59,13 +63,14 @@ function changedFiles(work, startHead) {
 }
 
 function evidence(out) {
-  const ev = { skills: new Set(), reads: [], bash: [], agents: 0 };
+  const ev = { skills: new Set(), reads: [], bash: [], agents: 0, tools: new Set() };
   for (const line of out.split("\n")) {
     let msg;
     try { msg = JSON.parse(line); } catch { continue; }
     for (const block of msg?.message?.content ?? []) {
       if (block.type !== "tool_use") continue;
       const input = block.input ?? {};
+      ev.tools.add(block.name);
       if (block.name === "Skill" && typeof input.skill === "string") ev.skills.add(input.skill.replace(/^gmstack:/, ""));
       if (block.name === "Read" && typeof input.file_path === "string") {
         ev.reads.push(input.file_path);
@@ -84,6 +89,7 @@ function marker(m, ev, changed) {
   const [kind, ...rest] = m.split(":");
   const arg = rest.join(":");
   if (kind === "skill") return ev.skills.has(arg);
+  if (kind === "tool") return ev.tools.has(arg);
   const re = new RegExp(arg);
   if (kind === "read") return ev.reads.some((p) => re.test(p));
   if (kind === "bash") return ev.bash.some((c) => re.test(c));
@@ -93,7 +99,7 @@ function marker(m, ev, changed) {
 
 function runCase(c) {
   return new Promise((done) => {
-    const work = mkdtempSync(join(tmpdir(), `gmstack-flow-${c.id}-`));
+    const work = mkdtempSync(join(tmpdir(), `gmstack-flow-${c.id.replace("#", "-")}-`));
     cpSync(fixture, work, { recursive: true });
     if (c.overlay) cpSync(join(root, "evals/overlays", c.overlay), work, { recursive: true });
     let startHead = "";
@@ -111,7 +117,7 @@ function runCase(c) {
     const child = spawn(
       "claude",
       ["-p", "--plugin-dir", root, "--model", model, "--max-turns", maxTurns, "--permission-mode", "acceptEdits",
-        "--allowedTools", "Bash Read Write Edit Glob Grep Skill Agent Task TodoWrite", "--output-format", "stream-json", "--verbose", c.prompt],
+        "--allowedTools", "Bash Read Write Edit Glob Grep Skill Agent Task ToolSearch TaskCreate TaskUpdate TaskList TaskGet TodoWrite", "--output-format", "stream-json", "--verbose", c.prompt],
       { cwd: work, stdio: ["ignore", "pipe", "pipe"] },
     );
     const timer = setTimeout(() => child.kill("SIGTERM"), timeoutMs);
@@ -120,14 +126,14 @@ function runCase(c) {
     child.stderr.on("data", (d) => (out += d));
     child.on("close", (code) => {
       clearTimeout(timer);
-      writeFileSync(join(outDir, `${c.id}.jsonl`), out);
+      writeFileSync(join(outDir, `${c.id.replace("#", "-")}.jsonl`), out);
       const ev = evidence(out);
       let changed = new Set();
       try { changed = changedFiles(work, startHead); } catch {}
       const steps = c.steps.map((s) => ({ id: s.id, pass: s.any.some((m) => marker(m, ev, changed)) }));
       const result = out.split("\n").map((l) => { try { return JSON.parse(l); } catch { return null; } }).find((m) => m?.type === "result");
       rmSync(work, { recursive: true, force: true });
-      done({ id: c.id, steps, incomplete: incompleteReason(out), exit: code, minutes: ((Date.now() - started) / 60000).toFixed(1), stop: result?.subtype ?? "no result", changed: [...changed] });
+      done({ id: c.id, base: c.base ?? c.id, steps, incomplete: incompleteReason(out), exit: code, minutes: ((Date.now() - started) / 60000).toFixed(1), stop: result?.subtype ?? "no result", changed: [...changed] });
     });
   });
 }
@@ -160,6 +166,16 @@ for (const r of results) {
   console.log("| Step | Result |\n|---|---|");
   for (const s of r.steps) console.log(`| ${s.id} | ${s.pass ? "PASS" : "MISS"} |`);
   console.log(`\nFiles changed: ${r.changed.join(", ") || "none"}`);
+}
+if (repeat > 1) {
+  console.log(`\n### Step stability over ${repeat} runs (incomplete runs left out)\n`);
+  for (const c of chosen) {
+    const runs = results.filter((r) => r.base === c.id && !r.incomplete);
+    console.log(`${c.id}: ${runs.length} scored run(s)`);
+    console.log("| Step | Passed |\n|---|---|");
+    for (const st of c.steps) console.log(`| ${st.id} | ${runs.filter((r) => r.steps.find((s) => s.id === st.id)?.pass).length}/${runs.length} |`);
+    console.log("");
+  }
 }
 console.log(`\nFlow completion: ${passedAll}/${total} steps (${total ? Math.round((100 * passedAll) / total) : 0}%) · model ${model} · transcripts: ${outDir}`);
 if (incomplete.length) {
