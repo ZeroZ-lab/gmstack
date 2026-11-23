@@ -12,7 +12,8 @@
 // the stream-json transcript and the copy's git state, and prints one row per step plus each
 // case's completion rate.
 //
-// Exit code: 0 when every step of every case passed, 1 otherwise. Needs `claude` and `git`.
+// Exit code: 0 when every step of every case passed, 1 otherwise, 3 when a case was cut short
+// (usage limit, API error, timeout) and so could not be scored. Needs `claude` and `git`.
 import { readFileSync, mkdtempSync, cpSync, rmSync, writeFileSync } from "node:fs";
 import { spawn, execFileSync } from "node:child_process";
 import { tmpdir } from "node:os";
@@ -34,6 +35,16 @@ if (!fixture) { console.error("eval-flow: --fixture <path> is required"); proces
 const { cases } = JSON.parse(readFileSync(join(root, "evals/flow.json"), "utf8"));
 const selected = cases.filter((c) => !only || only.has(c.id));
 const outDir = mkdtempSync(join(tmpdir(), "gmstack-flow-"));
+// A run cut short by a usage/rate limit or an API error measures nothing; report it as
+// INCOMPLETE instead of scoring it.
+const incompleteReason = (out) => {
+  const result = out.split("\n").map((l) => { try { return JSON.parse(l); } catch { return null; } }).find((m) => m?.type === "result");
+  if (!result) return "no result (killed or crashed)";
+  const text = String(result.result ?? "");
+  if (/hit your .*limit|usage limit|rate limit/i.test(text)) return text.split("\n")[0];
+  if (result.is_error && result.subtype !== "error_max_turns") return `${result.subtype}: ${text.split("\n")[0]}`.slice(0, 160);
+  return null;
+};
 const git = (cwd, ...a) => execFileSync("git", ["-C", cwd, ...a], { encoding: "utf8" });
 
 function changedFiles(work, startHead) {
@@ -116,7 +127,7 @@ function runCase(c) {
       const steps = c.steps.map((s) => ({ id: s.id, pass: s.any.some((m) => marker(m, ev, changed)) }));
       const result = out.split("\n").map((l) => { try { return JSON.parse(l); } catch { return null; } }).find((m) => m?.type === "result");
       rmSync(work, { recursive: true, force: true });
-      done({ id: c.id, steps, exit: code, minutes: ((Date.now() - started) / 60000).toFixed(1), stop: result?.subtype ?? "no result", changed: [...changed] });
+      done({ id: c.id, steps, incomplete: incompleteReason(out), exit: code, minutes: ((Date.now() - started) / 60000).toFixed(1), stop: result?.subtype ?? "no result", changed: [...changed] });
     });
   });
 }
@@ -130,7 +141,8 @@ await Promise.all(
       const r = await runCase(c);
       results.push(r);
       const passed = r.steps.filter((s) => s.pass).length;
-      console.error(`${passed}/${r.steps.length} ${r.id} (${r.minutes} min, ${r.stop})`);
+      if (r.incomplete) console.error(`INCOMPLETE ${r.id}: ${r.incomplete}`);
+      else console.error(`${passed}/${r.steps.length} ${r.id} (${r.minutes} min, ${r.stop})`);
     }
   }),
 );
@@ -138,7 +150,9 @@ await Promise.all(
 results.sort((a, b) => selected.findIndex((c) => c.id === a.id) - selected.findIndex((c) => c.id === b.id));
 let total = 0;
 let passedAll = 0;
+const incomplete = results.filter((r) => r.incomplete);
 for (const r of results) {
+  if (r.incomplete) { console.log(`\n### ${r.id}: INCOMPLETE — ${r.incomplete}`); continue; }
   const passed = r.steps.filter((s) => s.pass).length;
   total += r.steps.length;
   passedAll += passed;
@@ -148,4 +162,8 @@ for (const r of results) {
   console.log(`\nFiles changed: ${r.changed.join(", ") || "none"}`);
 }
 console.log(`\nFlow completion: ${passedAll}/${total} steps (${total ? Math.round((100 * passedAll) / total) : 0}%) · model ${model} · transcripts: ${outDir}`);
+if (incomplete.length) {
+  console.log(`${incomplete.length} case(s) INCOMPLETE and left out of the rate; rerun them with --only ${incomplete.map((r) => r.id).join(",")}`);
+  process.exit(3);
+}
 process.exit(passedAll === total ? 0 : 1);

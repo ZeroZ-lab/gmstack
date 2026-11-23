@@ -14,7 +14,8 @@
 // runner reads the stream-json transcript and records which gmstack skills were invoked and
 // which gm playbook files were read, then compares with the case's expectation.
 //
-// Exit code: 0 when every case passes, 1 otherwise. Needs the `claude` CLI on PATH.
+// Exit code: 0 when every case passes, 1 otherwise, 3 when a case was cut short (usage limit,
+// API error, crash) and so could not be scored. Needs the `claude` CLI on PATH.
 import { readFileSync, mkdtempSync, cpSync, rmSync, writeFileSync, mkdirSync } from "node:fs";
 import { spawn } from "node:child_process";
 import { tmpdir } from "node:os";
@@ -38,6 +39,16 @@ if (selected.some((c) => c.fixture === "project") && !fixture) {
   process.exit(2);
 }
 
+// A run cut short by a usage/rate limit or an API error measures nothing; report it as
+// INCOMPLETE instead of scoring it.
+const incompleteReason = (out) => {
+  const result = out.split("\n").map((l) => { try { return JSON.parse(l); } catch { return null; } }).find((m) => m?.type === "result");
+  if (!result) return "no result (killed or crashed)";
+  const text = String(result.result ?? "");
+  if (/hit your .*limit|usage limit|rate limit/i.test(text)) return text.split("\n")[0];
+  if (result.is_error && result.subtype !== "error_max_turns") return `${result.subtype}: ${text.split("\n")[0]}`.slice(0, 160);
+  return null;
+};
 const outDir = mkdtempSync(join(tmpdir(), "gmstack-eval-"));
 
 function runCase(c) {
@@ -88,7 +99,7 @@ function runCase(c) {
       // parentheses so a say: regex can use alternation.
       const alternatives = c.expect.split(/\|(?![^(]*\))/);
       const pass = alternatives.some((alt) => alt.split("&").every(meets));
-      done({ id: c.id, expect: c.expect, pass, skills: [...skills], playbooks: [...playbooks].map((p) => (shown.has(p) ? `${p} (shown)` : p)) });
+      done({ id: c.id, expect: c.expect, pass, incomplete: incompleteReason(out), skills: [...skills], playbooks: [...playbooks].map((p) => (shown.has(p) ? `${p} (shown)` : p)) });
     });
   });
 }
@@ -101,7 +112,7 @@ await Promise.all(
       const c = queue.shift();
       const r = await runCase(c);
       results.push(r);
-      console.error(`${r.pass ? "PASS" : "FAIL"} ${r.id}`);
+      console.error(`${r.incomplete ? "INCOMPLETE" : r.pass ? "PASS" : "FAIL"} ${r.id}${r.incomplete ? `: ${r.incomplete}` : ""}`);
     }
   }),
 );
@@ -110,8 +121,14 @@ results.sort((a, b) => selected.findIndex((c) => c.id === a.id) - selected.findI
 console.log("| Case | Expect | Result | Skills invoked | Playbooks read |");
 console.log("|---|---|---|---|---|");
 for (const r of results) {
-  console.log(`| ${r.id} | ${r.expect.replaceAll("|", "\\|")} | ${r.pass ? "PASS" : "FAIL"} | ${r.skills.join(", ") || "-"} | ${r.playbooks.join(", ") || "-"} |`);
+  console.log(`| ${r.id} | ${r.expect.replaceAll("|", "\\|")} | ${r.incomplete ? "INCOMPLETE" : r.pass ? "PASS" : "FAIL"} | ${r.skills.join(", ") || "-"} | ${r.playbooks.join(", ") || "-"} |`);
 }
-const passed = results.filter((r) => r.pass).length;
-console.log(`\n${passed}/${results.length} passed · model ${model} · transcripts: ${outDir}`);
-process.exit(passed === results.length ? 0 : 1);
+const scored = results.filter((r) => !r.incomplete);
+const passed = scored.filter((r) => r.pass).length;
+console.log(`\n${passed}/${scored.length} passed · model ${model} · transcripts: ${outDir}`);
+const incomplete = results.filter((r) => r.incomplete);
+if (incomplete.length) {
+  console.log(`${incomplete.length} case(s) INCOMPLETE and not scored; rerun them with --only ${incomplete.map((r) => r.id).join(",")}`);
+  process.exit(3);
+}
+process.exit(passed === scored.length ? 0 : 1);
