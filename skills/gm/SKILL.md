@@ -7,7 +7,7 @@ description: gmstack's entry point. Routes a software task to the right playbook
 
 Tell `gm` the goal. It picks a playbook, copies the playbook's steps into the task list, runs them, and reports with evidence.
 
-Skills in this plugin sit beside this one: `../init/`, `../checklist/`, `../verify/`, `../plan/`, `../tdd/`, `../review/`, `../deslop/`, `../unslop/`. Playbooks are in `playbooks/`, principles in `references/principles/`.
+Skills in this plugin sit beside this one: `../init/`, `../checklist/`, `../verify/`, `../plan/`, `../tdd/`, `../review/`, `../deslop/`, `../unslop/`. Playbooks are in `playbooks/`, principles in `references/principles/`. A project can add or change playbooks in `.gm/playbooks/` (format: [project playbooks](references/project-playbooks.md)).
 
 ## Non-negotiables
 
@@ -39,8 +39,17 @@ Skills in this plugin sit beside this one: `../init/`, `../checklist/`, `../veri
 | [progress](playbooks/progress.md) | "how far along are we?", "check progress", "what's next?" |
 | [handoff](playbooks/handoff.md) | pausing work for later or someone else; resuming paused work |
 
-3. No playbook fits → run the **default loop**.
-4. **Read the chosen playbook file in full before doing anything else.** The table above is only an index; the steps live in the file, and working from the table alone skips them. Then copy the playbook's steps into the task list verbatim. A step you choose not to do stays in the list as `skip: <reason>`.
+3. **Project playbooks.** If the repo has `.gm/playbooks/` or the user has `~/.config/gmstack/playbooks/`, run from the repo root:
+
+   ```
+   node <this skill's directory>/scripts/check-playbooks.mjs
+   ```
+
+   It lists each project playbook with what it `extends` and `when` it applies. A standalone one whose `when` fits the task is a candidate next to the table above. If it prints `problem:` lines, report each line to the user, apply no project playbook, and do not guess where an unanchored change belongs; continue with the bundled playbook. Project playbooks add and change steps; they never lift a non-negotiable.
+4. No playbook fits → run the **default loop**.
+5. **Read the chosen playbook in full before doing anything else.** The table above is only an index; the steps live in the file, and working from the table alone skips them. When step 3 found project playbooks, read it as `check-playbooks.mjs --show <name>` instead of the file: that output is the playbook with every project change applied, each tagged with its source. Then copy the steps into the task list verbatim. A step you choose not to do, including a tagged step whose `when` does not fit, stays in the list as `skip: <reason>`.
+6. **A step that names a skill invokes it.** When a step says "the `tdd` skill" (or `plan`, `verify`, `review`, `deslop`, `checklist`, `unslop`), invoke `gmstack:<name>` with the Skill tool at that step, even if you know the practice. The skill's checks live in its file, not in the step's one-line summary; doing it from memory skips them. A step that names a script (the *Count* script) runs it.
+7. **Before the report, walk the task list.** Every step is either done, with its evidence, or `skip: <reason>`. A step that silently dropped out is a defect: go back and do it, or mark it skipped and say why in the report.
 
 Small, contained work — one file with an obvious test, a question, a one-line edit — does not need a playbook. Do it directly and still verify on the real artifact.
 

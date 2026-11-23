@@ -11,6 +11,9 @@
 //   6. package.json version matches plugin.json version
 //   7. hooks/hooks.json parses, every hook script it names exists and is executable, and
 //      every `gmstack:<skill>` named in hooks/routing.md is a real skill
+//   8. every bundled playbook has numbered steps (project playbooks anchor on them)
+//   9. evals/*.json parse; every case names a real overlay, a known expectation or marker
+//      kind, and a playbook or skill that exists
 import { readFileSync, readdirSync, existsSync, statSync } from "node:fs";
 import { join, dirname, resolve, relative } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -105,6 +108,46 @@ if (existsSync(join(root, "hooks/hooks.json"))) {
       if (!skillDirs.includes(name)) fail(`hooks/routing.md: names unknown skill gmstack:${name}`);
     }
   }
+}
+
+// 8. bundled playbooks have steps
+const { loadBundled } = await import("../skills/gm/scripts/check-playbooks.mjs");
+const bundled = loadBundled();
+for (const [name, p] of bundled) if (!p.steps.length) fail(`skills/gm/playbooks/${name}.md: no numbered steps`);
+
+// 9. eval suites
+const overlayOk = (c, file) => {
+  if (c.overlay && !existsSync(join(root, "evals/overlays", c.overlay))) fail(`${file}: case ${c.id} overlay "${c.overlay}" does not exist`);
+};
+const nameOk = (file, id, kind, name) => {
+  if (kind === "skill" && !skillDirs.includes(name)) fail(`${file}: case ${id} names unknown skill "${name}"`);
+};
+if (existsSync(join(root, "evals/routing.json"))) {
+  try {
+    for (const c of JSON.parse(read("evals/routing.json")).cases) {
+      overlayOk(c, "evals/routing.json");
+      for (const alt of c.expect.split(/\|(?![^(]*\))/)) for (const cond of alt.split("&")) {
+        const [kind, ...rest] = cond.split(":");
+        if (cond === "direct" || kind === "show" || kind === "say") continue;
+        if (kind === "skill") nameOk("evals/routing.json", c.id, "skill", rest.join(":"));
+        else if (!bundled.has(cond)) fail(`evals/routing.json: case ${c.id} expects unknown playbook "${cond}"`);
+      }
+    }
+  } catch (e) { fail(`evals/routing.json: ${e.message}`); }
+}
+if (existsSync(join(root, "evals/flow.json"))) {
+  try {
+    for (const c of JSON.parse(read("evals/flow.json")).cases) {
+      overlayOk(c, "evals/flow.json");
+      for (const step of c.steps) for (const m of step.any) {
+        const [kind, ...rest] = m.split(":");
+        if (m === "agent") continue;
+        if (!["skill", "read", "bash", "changed"].includes(kind)) fail(`evals/flow.json: case ${c.id} step ${step.id} has unknown marker "${m}"`);
+        else if (kind === "skill") nameOk("evals/flow.json", c.id, "skill", rest.join(":"));
+        else try { new RegExp(rest.join(":")); } catch (e) { fail(`evals/flow.json: case ${c.id} step ${step.id}: ${e.message}`); }
+      }
+    }
+  } catch (e) { fail(`evals/flow.json: ${e.message}`); }
 }
 
 if (problems.length) {

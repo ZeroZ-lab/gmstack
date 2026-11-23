@@ -22,7 +22,7 @@ Playbooks (in `skills/gm/playbooks/`): `feature`, `bug-fix`, `refactor`, `invest
 
 ## Automatic routing
 
-A SessionStart hook tells Claude to use `gm` for multi-file changes, design choices, bugs with unknown causes, reviews, refactors, investigations, prototypes, and pause/resume, so you can describe the task without naming a skill. In a repo with `CHECKLIST.md`, it also notes that the repo is managed by gmstack.
+A SessionStart hook tells Claude to use `gm` for multi-file changes, design choices, bugs with unknown causes, reviews, refactors, investigations, prototypes, and pause/resume, so you can describe the task without naming a skill. In a repo with `CHECKLIST.md`, it also notes that the repo is managed by gmstack, and it lists any project playbooks (below) with their `when` lines.
 
 It is on by default. To turn it off:
 
@@ -31,6 +31,21 @@ It is on by default. To turn it off:
 | One session | `GMSTACK_ROUTING=off claude` |
 | One project | `mkdir -p .gmstack && echo off > .gmstack/routing` at the repo root |
 | All projects | `mkdir -p ~/.config/gmstack && echo off > ~/.config/gmstack/routing` |
+
+## Project playbooks
+
+A project can change a bundled playbook or add its own in `.gm/playbooks/` (or, for one user across every repo, `~/.config/gmstack/playbooks/`). A change is anchored on a quoted run of the bundled step's own words:
+
+```markdown
+---
+extends: feature
+when: the change adds or changes a command-line flag
+---
+
+- **After** "Run the `verify` skill.": Add the flag's entry to `docs/flags.md`.
+```
+
+`gm` runs `skills/gm/scripts/check-playbooks.mjs` and reads the playbook through `--show <name>`, which prints it with every project change applied. When a gmstack upgrade rewords a step and an anchor no longer matches, the script fails and `gm` reports it instead of guessing. Format: [skills/gm/references/project-playbooks.md](skills/gm/references/project-playbooks.md). Run the check in CI to catch a broken anchor on upgrade.
 
 Principles (in `skills/gm/references/principles/`): 12 short rules the playbooks cite — smallest change, data shape first, prove it works, fix root causes, and more.
 
@@ -55,15 +70,22 @@ Then, in a new or existing project:
 
 ```bash
 npm run validate
+npm test
 ```
 
-Checks the manifest, skill frontmatter, every relative link, that `gm` lists every playbook and principle, checklist item IDs, and the hook config.
+`validate` checks the manifest, skill frontmatter, every relative link, that `gm` lists every playbook and principle, checklist item IDs, the hook config, that every bundled playbook has numbered steps, and the eval suites' shape. `npm test` runs the unit tests for `check-playbooks.mjs`.
 
 ```bash
 node scripts/eval-routing.mjs --fixture /path/to/a/gmstack-managed/project
 ```
 
-Routing eval: runs each prompt in [evals/routing.json](evals/routing.json) through headless Claude Code in plan mode and checks which skill and playbook it chose. Prompts never name a skill.
+Routing eval: runs each prompt in [evals/routing.json](evals/routing.json) through headless Claude Code with read-only tools and checks which skill and playbook it chose. Prompts never name a skill. Some cases add project playbooks from [evals/overlays/](evals/overlays/), including one with a broken anchor.
+
+```bash
+node scripts/eval-flow.mjs --fixture /path/to/a/gmstack-managed/git/repo
+```
+
+Flow eval: runs whole tasks from [evals/flow.json](evals/flow.json) on a throwaway copy of the fixture, with edits allowed, and checks one marker per playbook step (tdd invoked, verify run, a reviewer subagent spawned, CHECKLIST.md changed, and so on). It prints each case's completion rate. Slow: several minutes and real tokens per case.
 
 Design and roadmap: [docs/DESIGN.md](docs/DESIGN.md).
 

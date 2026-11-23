@@ -3,12 +3,13 @@
 //
 // Usage:
 //   node scripts/eval-routing.mjs --fixture <path to a gmstack-managed project> [--model sonnet]
-//                                 [--only id,id] [--concurrency 3] [--max-turns 8]
+//                                 [--only id,id] [--concurrency 3] [--max-turns 10]
 //
 // Each case runs headless Claude Code in its normal mode on a fresh copy of the fixture
-// ("project") or an empty directory ("empty"), with this plugin loaded via --plugin-dir. Only
-// read-only tools are allowed (Read, Glob, Grep, Skill); anything else is denied, so a case
-// cannot change files. (Plan mode is not used: it changes how Claude approaches the task and
+// ("project") or an empty directory ("empty"), with this plugin loaded via --plugin-dir. A case's
+// "overlay" folder (under evals/overlays/) is copied on top, e.g. to add project playbooks.
+// Only read-only tools are allowed (Read, Glob, Grep, Skill), plus `node` so gm can run
+// check-playbooks.mjs; anything else is denied. Each case works on a throwaway copy. (Plan mode is not used: it changes how Claude approaches the task and
 // writes plan files into ~/.claude/plans.) The
 // runner reads the stream-json transcript and records which gmstack skills were invoked and
 // which gm playbook files were read, then compares with the case's expectation.
@@ -27,7 +28,7 @@ const args = Object.fromEntries(
 const fixture = args.fixture && resolve(args.fixture);
 const model = args.model ?? "sonnet";
 const concurrency = Number(args.concurrency ?? 3);
-const maxTurns = String(args["max-turns"] ?? 8);
+const maxTurns = String(args["max-turns"] ?? 10);
 const only = args.only ? new Set(args.only.split(",")) : null;
 
 const { cases } = JSON.parse(readFileSync(join(root, "evals/routing.json"), "utf8"));
@@ -43,10 +44,11 @@ function runCase(c) {
   return new Promise((done) => {
     const work = mkdtempSync(join(tmpdir(), `gmstack-case-${c.id}-`));
     if (c.fixture === "project") cpSync(fixture, work, { recursive: true });
+    if (c.overlay) cpSync(join(root, "evals/overlays", c.overlay), work, { recursive: true });
     const child = spawn(
       "claude",
       ["-p", "--plugin-dir", root, "--model", model, "--max-turns", maxTurns, "--permission-mode", "default",
-        "--allowedTools", "Read Glob Grep Skill", "--output-format", "stream-json", "--verbose", c.prompt],
+        "--allowedTools", "Read Glob Grep Skill Bash(node:*)", "--output-format", "stream-json", "--verbose", c.prompt],
       { cwd: work, stdio: ["ignore", "pipe", "pipe"] },
     );
     let out = "";
@@ -56,10 +58,13 @@ function runCase(c) {
       writeFileSync(join(outDir, `${c.id}.jsonl`), out);
       const skills = new Set();
       const playbooks = new Set();
+      const shown = new Set();
+      let said = "";
       for (const line of out.split("\n")) {
         let msg;
         try { msg = JSON.parse(line); } catch { continue; }
         for (const block of msg?.message?.content ?? []) {
+          if (msg.type === "assistant" && block.type === "text") said += block.text + "\n";
           if (block.type !== "tool_use") continue;
           const input = block.input ?? {};
           if (block.name === "Skill" && typeof input.skill === "string") {
@@ -68,15 +73,22 @@ function runCase(c) {
           const file = input.file_path ?? input.path ?? "";
           const m = typeof file === "string" && file.match(/skills\/gm\/playbooks\/([a-z-]+)\.md$/);
           if (m) playbooks.add(m[1]);
+          const show = typeof input.command === "string" && input.command.match(/check-playbooks\.mjs\b.*--show[ =]+["']?([a-z0-9-]+)/);
+          if (show) { shown.add(show[1]); playbooks.add(show[1]); }
         }
       }
       rmSync(work, { recursive: true, force: true });
       const meets = (e) =>
         e === "direct" ? skills.size === 0
         : e.startsWith("skill:") ? skills.has(e.slice(6))
+        : e.startsWith("show:") ? shown.has(e.slice(5))
+        : e.startsWith("say:") ? new RegExp(e.slice(4), "i").test(said)
         : skills.has("gm") && playbooks.has(e);
-      const pass = c.expect.split("|").some(meets);
-      done({ id: c.id, expect: c.expect, pass, skills: [...skills], playbooks: [...playbooks] });
+      // "|" separates alternatives; "&" joins conditions inside one. Split "|" only outside
+      // parentheses so a say: regex can use alternation.
+      const alternatives = c.expect.split(/\|(?![^(]*\))/);
+      const pass = alternatives.some((alt) => alt.split("&").every(meets));
+      done({ id: c.id, expect: c.expect, pass, skills: [...skills], playbooks: [...playbooks].map((p) => (shown.has(p) ? `${p} (shown)` : p)) });
     });
   });
 }
@@ -98,7 +110,7 @@ results.sort((a, b) => selected.findIndex((c) => c.id === a.id) - selected.findI
 console.log("| Case | Expect | Result | Skills invoked | Playbooks read |");
 console.log("|---|---|---|---|---|");
 for (const r of results) {
-  console.log(`| ${r.id} | ${r.expect} | ${r.pass ? "PASS" : "FAIL"} | ${r.skills.join(", ") || "-"} | ${r.playbooks.join(", ") || "-"} |`);
+  console.log(`| ${r.id} | ${r.expect.replaceAll("|", "\\|")} | ${r.pass ? "PASS" : "FAIL"} | ${r.skills.join(", ") || "-"} | ${r.playbooks.join(", ") || "-"} |`);
 }
 const passed = results.filter((r) => r.pass).length;
 console.log(`\n${passed}/${results.length} passed · model ${model} · transcripts: ${outDir}`);

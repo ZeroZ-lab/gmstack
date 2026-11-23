@@ -25,4 +25,21 @@ cat "$(dirname "$0")/routing.md" 2>/dev/null || exit 0
 if [ -f "$root/CHECKLIST.md" ]; then
   printf '\nThis repository is managed by gmstack: CHECKLIST.md at the repo root tracks checklist items and their evidence. Keep it current through the gmstack checklist skill when work changes an item.\n'
 fi
+
+# Project playbooks: list them so routing can consider them. gm checks and applies them.
+list_playbooks() {
+  for f in "$1"/*.md; do
+    [ -f "$f" ] || continue
+    name=$(basename "$f" .md)
+    ext=$(sed -n 's/^extends:[[:space:]]*//p' "$f" | head -n 1)
+    when=$(sed -n 's/^when:[[:space:]]*//p' "$f" | head -n 1)
+    kind=standalone
+    [ -n "$ext" ] && kind="extends $ext"
+    printf -- '- %s (%s): %s\n' "$name" "$kind" "$when"
+  done
+}
+pb=$(list_playbooks "${XDG_CONFIG_HOME:-$HOME/.config}/gmstack/playbooks"; list_playbooks "$root/.gm/playbooks")
+if [ -n "$pb" ]; then
+  printf '\nProject playbooks (gm checks and applies them):\n%s\n' "$pb"
+fi
 exit 0

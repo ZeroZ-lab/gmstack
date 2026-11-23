@@ -1,8 +1,10 @@
 # gmstack 设计草案 v0.1
 
-> 状态：设计已定稿，M0、M1、M2 已实现。决策汇总见第 12 节。skill 正文用英文，本设计文档仍用中文。
+> 状态：设计已定稿，M0–M3 已实现。决策汇总见第 12 节。skill 正文用英文，本设计文档仍用中文。
 >
 > M2 偏离原设计的一处：hook 开关没有做成 `setup` 命令，而是用环境变量 `GMSTACK_ROUTING=off`、项目级 `.gmstack/routing`、用户级 `~/.config/gmstack/routing` 三种方式，免得为一个开关多占一个 skill 名额。M3 计划中的路由评测提前做了基础版（`evals/routing.json` + `scripts/eval-routing.mjs`）。
+>
+> M3 相对原设计的调整：(1) 检查脚本多了 `--show <名字>`，直接输出合并后的 playbook，agent 不再自己拼接；(2) 合并后内置步骤保留原编号，插入的步骤记为 `6a`、`6b`，正文里"第 6 步"这类引用不会错位；(3) 用户级目录用 `~/.config/gmstack/playbooks/`，和路由开关放在一起，而不是 pstack 的 `~/.agents/playbooks/`；(4) 评测分成两套：路由评测（只读，判断选对没有）和流程评测（`evals/flow.json` + `scripts/eval-flow.mjs`，真实执行，按步骤标记统计完成率）。
 >
 > M1 的 tdd / plan / review / bug-fix 参考了 superpowers（test-driven-development、writing-plans、code-reviewer、systematic-debugging）、mattpocock（tdd、code-review、diagnosing-bugs）和 pstack（tdd、architect、bug-fix、feature）。
 > 骨架参考 [pstack-claude](https://github.com/michael-denyer/pstack-claude)，底座是现有的 `checklist-project-init`（工程 checklist v1.2）。
@@ -131,7 +133,10 @@
 
 - 项目在 `.gm/playbooks/<名字>.md` 里扩展或新增 playbook，frontmatter 写 `extends`（基于哪个内置 playbook）和 `when`（适用于什么请求）。
 - 修改语法沿用 pstack：`**After** "原步骤文字"`、`**Before**`、`**Replace**`、`**In**`。
-- 附带一个检查脚本：内置 playbook 升级导致锚点失效时报错，不允许 agent 猜测插入位置。
+- 附带一个检查脚本 `skills/gm/scripts/check-playbooks.mjs`：内置 playbook 升级导致锚点失效时报错，不允许 agent 猜测插入位置。`--show <名字>` 输出合并后的 playbook。
+- 用户级扩展放 `~/.config/gmstack/playbooks/`，先于项目级应用；同名独立 playbook 以项目级为准。
+- 引号里的文字必须恰好命中被扩展 playbook 的一个步骤；两个扩展不能 Replace 同一步；Replace 带硬规则的步骤（verify、review、tdd、证据）会打印提示，硬规则照样生效。
+- 格式说明见 `skills/gm/references/project-playbooks.md`。
 
 ## 10. 打包与分发
 

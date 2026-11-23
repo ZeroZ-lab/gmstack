@@ -1,0 +1,198 @@
+{
+  "description": "Flow eval: does gmstack carry a task through its playbook's steps, not just route it? Each case may run a 'setup' shell command in the copy first (committed as the baseline, e.g. to plant a bug), then runs a real, writable task on a throwaway copy of the fixture and checks the transcript and the resulting files for one marker per playbook step. A step passes when any of its markers is found. Markers: 'skill:<name>' (the gmstack skill was invoked, or its SKILL.md read), 'read:<regex>' (a file whose path matches was read), 'bash:<regex>' (a shell command matched), 'agent' (a subagent was spawned), 'changed:<regex>' (a file whose path matches was added or modified, committed or not). Completion rate = steps passed / steps checked.",
+  "cases": [
+    {
+      "id": "feature",
+      "fixture": "project",
+      "prompt": "Add a --json flag that prints the result as {\"sum\": N} instead of a bare number.",
+      "steps": [
+        {
+          "id": "route",
+          "any": [
+            "skill:gm"
+          ]
+        },
+        {
+          "id": "playbook",
+          "any": [
+            "read:skills/gm/playbooks/feature\\.md$",
+            "bash:check-playbooks\\.mjs.*--show[ =]+feature"
+          ]
+        },
+        {
+          "id": "tdd",
+          "any": [
+            "skill:tdd"
+          ]
+        },
+        {
+          "id": "test-added",
+          "any": [
+            "changed:\\.test\\.ts$"
+          ]
+        },
+        {
+          "id": "verify",
+          "any": [
+            "bash:npm run verify|scripts/verify\\.sh"
+          ]
+        },
+        {
+          "id": "real-surface",
+          "any": [
+            "bash:(dist/cli\\.js|tinycalc|npm start).*--json"
+          ]
+        },
+        {
+          "id": "independent-review",
+          "any": [
+            "agent"
+          ]
+        },
+        {
+          "id": "docs",
+          "any": [
+            "changed:^(CHANGELOG|README)\\.md$"
+          ]
+        },
+        {
+          "id": "record",
+          "any": [
+            "changed:^CHECKLIST\\.md$"
+          ]
+        },
+        {
+          "id": "count",
+          "any": [
+            "bash:count\\.mjs"
+          ]
+        },
+        {
+          "id": "deslop",
+          "any": [
+            "skill:deslop"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "bug-fix",
+      "fixture": "project",
+      "prompt": "`tinycalc --precision 2 -1.5` prints 1.50, but it should print -1.50.",
+      "steps": [
+        {
+          "id": "route",
+          "any": [
+            "skill:gm"
+          ]
+        },
+        {
+          "id": "playbook",
+          "any": [
+            "read:skills/gm/playbooks/bug-fix\\.md$",
+            "bash:check-playbooks\\.mjs.*--show[ =]+bug-fix"
+          ]
+        },
+        {
+          "id": "reproduce",
+          "any": [
+            "bash:(dist/cli\\.js|tinycalc|npm start).*--precision"
+          ]
+        },
+        {
+          "id": "tdd",
+          "any": [
+            "skill:tdd"
+          ]
+        },
+        {
+          "id": "test-added",
+          "any": [
+            "changed:\\.test\\.ts$"
+          ]
+        },
+        {
+          "id": "verify",
+          "any": [
+            "bash:npm run verify|scripts/verify\\.sh"
+          ]
+        },
+        {
+          "id": "independent-review",
+          "any": [
+            "agent"
+          ]
+        },
+        {
+          "id": "record",
+          "any": [
+            "changed:^(CHECKLIST|CHANGELOG)\\.md$"
+          ]
+        },
+        {
+          "id": "count",
+          "any": [
+            "bash:count\\.mjs"
+          ]
+        },
+        {
+          "id": "deslop",
+          "any": [
+            "skill:deslop"
+          ]
+        }
+      ],
+      "setup": "node -e \"const f='src/sum.ts',fs=require('fs');const s=fs.readFileSync(f,'utf8');const t=s.replace(/const sign = .*;/,'const sign = \\\"\\\";');if(s===t)process.exit(1);fs.writeFileSync(f,t)\" && npm run build --silent"
+    },
+    {
+      "id": "feature-with-project-playbook",
+      "fixture": "project",
+      "overlay": "project-playbooks",
+      "prompt": "Add a --json flag that prints the result as {\"sum\": N} instead of a bare number.",
+      "steps": [
+        {
+          "id": "route",
+          "any": [
+            "skill:gm"
+          ]
+        },
+        {
+          "id": "check",
+          "any": [
+            "bash:check-playbooks\\.mjs"
+          ]
+        },
+        {
+          "id": "resolved-playbook",
+          "any": [
+            "bash:check-playbooks\\.mjs.*--show[ =]+feature"
+          ]
+        },
+        {
+          "id": "verify",
+          "any": [
+            "bash:npm run verify|scripts/verify\\.sh"
+          ]
+        },
+        {
+          "id": "project-step",
+          "any": [
+            "changed:^docs/flags\\.md$"
+          ]
+        },
+        {
+          "id": "independent-review",
+          "any": [
+            "agent"
+          ]
+        },
+        {
+          "id": "count",
+          "any": [
+            "bash:count\\.mjs"
+          ]
+        }
+      ]
+    }
+  ]
+}
