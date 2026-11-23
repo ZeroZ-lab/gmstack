@@ -1,13 +1,13 @@
 ---
 name: gm
-description: gmstack's entry point. Routes a software task to the right playbook (init, release gate, progress check) and runs it evidence-first — plan, change, verify, independent review, record evidence in CHECKLIST.md. Use for /gm, for any task that touches more than one file or a shared signature, involves a design choice, is a bug with an unknown cause, or asks whether a gmstack project is ready to release or how far along it is.
+description: gmstack's entry point. Routes a software task to the right playbook (feature, bug fix, review, init, release gate, progress) and runs it evidence-first — plan, test-first change, verify, independent review, record evidence in CHECKLIST.md. Use for /gm, for any task that touches more than one file or a shared signature, involves a design choice, is a bug with an unknown cause, asks for a code review, or asks whether a gmstack project is ready to release or how far along it is.
 ---
 
 # gm
 
 Tell `gm` the goal. It picks a playbook, copies the playbook's steps into the task list, runs them, and reports with evidence.
 
-Skills in this plugin sit beside this one: `../init/`, `../checklist/`, `../verify/`. Playbooks are in `playbooks/`, principles in `references/principles/`.
+Skills in this plugin sit beside this one: `../init/`, `../checklist/`, `../verify/`, `../plan/`, `../tdd/`, `../review/`. Playbooks are in `playbooks/`, principles in `references/principles/`.
 
 ## Non-negotiables
 
@@ -28,11 +28,14 @@ Skills in this plugin sit beside this one: `../init/`, `../checklist/`, `../veri
 
 | Playbook | Use when |
 |---|---|
+| [feature](playbooks/feature.md) | adding new behavior: a feature, option, endpoint, screen |
+| [bug-fix](playbooks/bug-fix.md) | something is broken, throwing, wrong, or failing |
+| [review](playbooks/review.md) | reviewing a branch, PR, commit range, or uncommitted changes |
 | [init](playbooks/init.md) | creating a new project or onboarding an existing repo |
 | [gate](playbooks/gate.md) | "can we release?", "is this ready to ship?", pre-release check |
 | [progress](playbooks/progress.md) | "how far along are we?", "check progress", "what's next?" |
 
-3. No playbook fits (feature, bug fix, refactor, investigation…) → run the **default loop**. Dedicated playbooks for these arrive in later gmstack versions.
+3. No playbook fits (refactor, investigation, prototype…) → run the **default loop**. Dedicated playbooks for these arrive in later gmstack versions.
 4. Copy the chosen playbook's steps into the task list verbatim. A step you choose not to do stays in the list as `skip: <reason>`.
 
 Small, contained work — one file with an obvious test, a question, a one-line edit — does not need a playbook. Do it directly and still verify on the real artifact.
@@ -41,10 +44,10 @@ Small, contained work — one file with an obvious test, a question, a one-line 
 
 1. **Goal** — restate it and the smallest change that meets it.
 2. **Investigate** — read the code involved. For a bug, reproduce it first and keep the failing command.
-3. **Plan** — name the data shape first. If the change crosses a module boundary or changes a shared signature, write the plan (types, signatures, files, acceptance criteria) before coding.
-4. **Change** — only files in scope.
+3. **Plan** — name the data shape first. If the change crosses a module boundary or changes a shared signature, use the `plan` skill before coding.
+4. **Change** — only files in scope. Behavior changes go through the `tdd` skill.
 5. **Verify** — run the `verify` skill. For a bug, rerun the failing command and show it now passes.
-6. **Independent review** — spawn a fresh subagent with the goal, the diff, and the verify report. Ask it to check correctness, scope, and whether any protected verification file changed. Fix what it finds, then verify again.
+6. **Independent review** — use the `review` skill: a fresh subagent checks spec fit, correctness, tests, standards, protected files, and your evidence. Fix blocking findings, then verify again.
 7. **Record** — update CHECKLIST.md rows this work affects, via the `checklist` skill.
 8. **Report** — see *Writing the report*.
 
@@ -83,11 +86,16 @@ Read a principle's file in full before applying it, and in the report name each 
 
 ## Writing the report
 
-Short declarative sentences. Lead with what changed for the user. Label each claim: measured (with evidence), inferred, or guess. Never hand the user a check you could have run. Include:
+Short declarative sentences. Lead with what changed for the user. Label each claim: measured (with evidence), inferred, or guess. Never hand the user a check you could have run.
+
+**The verify result you report must come from a run after your last edit**, including edits to CHECKLIST.md, CHANGELOG, and docs. Changed anything after the last run? Run verify again before reporting.
+
+Include:
 
 - What changed, and files touched
 - verify result (table or one line with exit code and log path)
+- For each test added: the `tdd` evidence line (red command and quoted failure, green command)
 - Independent review verdict, or `BLOCKED: independent review`
-- CHECKLIST rows changed
+- CHECKLIST rows changed, and the status counts from the `checklist` skill's *Count* script (run it even when no status changed)
 - Principles applied and the decision each changed
 - What is not done or not verified

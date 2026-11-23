@@ -1,6 +1,8 @@
 # gmstack 设计草案 v0.1
 
-> 状态：设计已定稿，M0 已实现（另外提前完成了 M1 的 12 条原则）。决策汇总见第 12 节。skill 正文用英文，本设计文档仍用中文。
+> 状态：设计已定稿，M0、M1 已实现。决策汇总见第 12 节。skill 正文用英文，本设计文档仍用中文。
+>
+> M1 的 tdd / plan / review / bug-fix 参考了 superpowers（test-driven-development、writing-plans、code-reviewer、systematic-debugging）、mattpocock（tdd、code-review、diagnosing-bugs）和 pstack（tdd、architect、bug-fix、feature）。
 > 骨架参考 [pstack-claude](https://github.com/michael-denyer/pstack-claude)，底座是现有的 `checklist-project-init`（工程 checklist v1.2）。
 
 ## 1. 目标与非目标

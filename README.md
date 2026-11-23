@@ -12,8 +12,11 @@ Tell `/gmstack:gm` what you want. It routes the task to a playbook, runs it step
 | `init` | Creates or onboards a project under engineering checklist v1.2: tier (M/S/C), tags, skeleton, AGENTS.md, CHECKLIST.md, verify entry point, CI |
 | `checklist` | Owns CHECKLIST.md: statuses, evidence format, staleness rechecks, audits |
 | `verify` | Runs the project's single verify entry point and reports per-step PASS/FAIL/SKIPPED |
+| `plan` | Designs a change before coding: trace, two shapes, data shapes, interfaces, acceptance criteria, test-first tasks |
+| `tdd` | Seams first, then vertical slices: failing test → watch it fail for the right reason → minimal code → full suite green, with red/green evidence |
+| `review` | Independent review by a fresh subagent: spec, correctness, tests, standards, protected files, and whether the claimed evidence holds |
 
-Playbooks (in `skills/gm/playbooks/`): `init`, `gate` (can we release?), `progress` (where are we, what's next?).
+Playbooks (in `skills/gm/playbooks/`): `feature`, `bug-fix`, `review`, `init`, `gate` (can we release?), `progress` (where are we, what's next?).
 
 Principles (in `skills/gm/references/principles/`): 12 short rules the playbooks cite — smallest change, data shape first, prove it works, fix root causes, and more.
 
@@ -27,6 +30,9 @@ Then, in a new or existing project:
 
 ```text
 /gmstack:gm create a new project here
+/gmstack:gm add a --json flag to the CLI
+/gmstack:gm `calc 0.1 0.2` prints 0.30000000000000004
+/gmstack:gm review the changes since main
 /gmstack:gm can we release?
 /gmstack:gm how far along are we?
 ```

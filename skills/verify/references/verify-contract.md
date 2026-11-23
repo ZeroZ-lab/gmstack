@@ -14,10 +14,11 @@ The project's AGENTS.md names which one.
 
 ## Steps
 
-Run these steps in this order: `format` → `lint` → `typecheck` → `test` → `arch` → `secret-scan`.
+Run these steps in this order: `format` → `lint` → `typecheck` → `build` → `test` → `arch` → `secret-scan`.
 
 - **Run every step.** Do not stop at the first failure (no `set -e` across steps). Each step's result is recorded.
 - `format` checks only (e.g. `prettier --check`, `ruff format --check`); it never rewrites files.
+- `build` runs the project's real build with its real config (e.g. `npm run build`, `cargo build`, `go build ./...`). A passing `typecheck` does not prove the build works: the two often use different configs. A project with nothing to build prints `SKIPPED (no build)`.
 - A step not enabled at the project's tier (e.g. `arch` at tier M) prints `SKIPPED (not enabled)` and does not count as a failure.
 - A step whose tool is missing is **FAIL**, not SKIPPED. A missing tool is a broken setup, not an opt-out.
 
@@ -32,6 +33,7 @@ Run these steps in this order: `format` → `lint` → `typecheck` → `test` �
 | format      | PASS    | 0    | 1.2s  |
 | lint        | FAIL    | 1    | 3.4s  |
 | typecheck   | PASS    | 0    | 5.0s  |
+| build       | PASS    | 0    | 4.2s  |
 | test        | PASS    | 0    | 8.1s  |
 | arch        | SKIPPED | -    | -     |
 | secret-scan | PASS    | 0    | 0.9s  |
@@ -72,6 +74,7 @@ skip_step() { # name
 run_step format      npx prettier --check .
 run_step lint        npx eslint .
 run_step typecheck   npx tsc --noEmit
+run_step build       npm run build
 run_step test        npx vitest run
 skip_step arch
 run_step secret-scan gitleaks detect --no-banner --redact

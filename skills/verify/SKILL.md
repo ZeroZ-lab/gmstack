@@ -1,6 +1,6 @@
 ---
 name: verify
-description: Run a project's verify entry point (format, lint, typecheck, test, arch, secret-scan), report a per-step PASS/FAIL/SKIPPED table with exit codes and the log path, and check the entry point against the gmstack verify contract. Use after any code change, before claiming work is done, when the user asks to run checks or verify, or when a gmstack playbook reaches its verify step.
+description: Run a project's verify entry point (format, lint, typecheck, build, test, arch, secret-scan), report a per-step PASS/FAIL/SKIPPED table with exit codes and the log path, and check the entry point against the gmstack verify contract. Use after any code change, before claiming work is done, when the user asks to run checks or verify, or when a gmstack playbook reaches its verify step.
 ---
 
 # Verify
