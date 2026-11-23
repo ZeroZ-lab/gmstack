@@ -1,0 +1,10 @@
+{
+  "name": "gmstack",
+  "version": "0.1.0",
+  "description": "An evidence-first skill stack for AI-assisted software development: one entry skill (gm) routes each task to a playbook, and every result is backed by verifiable evidence tracked in the repo's CHECKLIST.md.",
+  "author": {
+    "name": "ZeroZ-lab"
+  },
+  "license": "MIT",
+  "keywords": ["workflow", "checklist", "verification", "playbooks", "project-init"]
+}
