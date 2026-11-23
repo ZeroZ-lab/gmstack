@@ -1,0 +1,13 @@
+{
+  "name": "gmstack",
+  "owner": {
+    "name": "ZeroZ-lab"
+  },
+  "plugins": [
+    {
+      "name": "gmstack",
+      "source": "./",
+      "description": "An evidence-first skill stack for AI-assisted software development: one entry skill (gm) routes each task to a playbook, and every result is backed by verifiable evidence tracked in the repo's CHECKLIST.md."
+    }
+  ]
+}

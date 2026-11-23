@@ -49,7 +49,38 @@ when: the change adds or changes a command-line flag
 
 Principles (in `skills/gm/references/principles/`): 12 short rules the playbooks cite — smallest change, data shape first, prove it works, fix root causes, and more.
 
+## Install from GitHub
+
+In Claude Code, add this repo as a plugin marketplace and install the plugin:
+
+```text
+/plugin marketplace add ZeroZ-lab/gmstack
+/plugin install gmstack@gmstack
+```
+
+Restart Claude Code (or run `/reload-plugins`) so the skills and the SessionStart hook load. To upgrade later:
+
+```text
+/plugin marketplace update gmstack
+```
+
+Or from a shell, without opening Claude Code:
+
+```bash
+claude plugin marketplace add ZeroZ-lab/gmstack
+```
+
+```bash
+claude plugin install gmstack@gmstack
+```
+
 ## Try it locally
+
+To run a checkout without installing it:
+
+```bash
+git clone https://github.com/ZeroZ-lab/gmstack.git
+```
 
 ```bash
 claude --plugin-dir /path/to/gmstack
