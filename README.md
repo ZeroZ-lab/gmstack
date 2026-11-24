@@ -106,7 +106,7 @@ npm run validate
 npm test
 ```
 
-`validate` checks the manifest, skill frontmatter, every relative link, that `gm` lists every playbook and principle, checklist item IDs, the hook config, that every bundled playbook has numbered steps, and the eval suites' shape. `npm test` runs the unit tests for `check-playbooks.mjs`.
+`validate` checks the manifest, skill frontmatter, every relative link, that `gm` lists every playbook and principle, checklist item IDs, the hook config, that every bundled playbook has numbered steps, and the eval suites' shape. `npm test` runs the unit tests for `check-playbooks.mjs`. CI ([.github/workflows/ci.yml](.github/workflows/ci.yml)) runs both on Node 20, 22, and 24, plus a syntax check of the hook scripts.
 
 ```bash
 node scripts/eval-routing.mjs --fixture /path/to/a/gmstack-managed/project

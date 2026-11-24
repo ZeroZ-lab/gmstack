@@ -176,16 +176,13 @@ docs/DESIGN.md
 | M3 | 项目级 playbook 扩展 + 检查脚本；评测集 | 准备一组典型请求，统计路由正确率和流程完成率 |
 | M4 | Codex 支持（可选） | — |
 
-## 12. 待决策
+## 12. 决策汇总
 
-已定：
 - 名字 `gmstack`
 - v1 只做 Claude Code
 - tdd 自己写，参考 superpowers / mattpocock / pstack
 - skill 正文用英文；现有中文 checklist 迁移时翻译
-
-待定：
-- SessionStart 路由 hook 默认开启，可在配置里关闭
+- SessionStart 路由 hook 默认开启，可在配置里关闭（开关见 README "Automatic routing"）
 - 入口 skill 名 `gm`（调用形式 `/gmstack:gm`）
 - 原则放在 `skills/gm/references/principles/`，不做成独立 skill（理由见第 7 节）
 
