@@ -360,9 +360,9 @@
         },
         {
           "id": "measure",
-          "min": 2,
           "any": [
-            "bash:\\bnode\\b"
+            "bash:\\bnode\\b[^\\n]*\\.[cm]?[jt]s\\b",
+            "bash:\\bnode -[ep]\\b"
           ]
         },
         {
@@ -388,21 +388,16 @@
         {
           "id": "route",
           "any": [
-            "skill:gm"
+            "skill:gm",
+            "skill:review"
           ]
         },
         {
           "id": "playbook",
           "any": [
             "read:skills/gm/playbooks/review\\.md$",
-            "bash:check-playbooks\\.mjs.*--show[ =]+review"
-          ]
-        },
-        {
-          "id": "task-list",
-          "any": [
-            "tool:TaskCreate",
-            "tool:TodoWrite"
+            "bash:check-playbooks\\.mjs.*--show[ =]+review",
+            "skill:review"
           ]
         },
         {

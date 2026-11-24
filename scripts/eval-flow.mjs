@@ -4,18 +4,21 @@
 // Usage:
 //   node scripts/eval-flow.mjs --fixture <path to a gmstack-managed git repo> [--model sonnet]
 //                              [--only id,id] [--repeat 1] [--concurrency 2] [--max-turns 150]
-//                              [--timeout-min 30]
+//                              [--timeout-min 30] [--unsandboxed]
 //
 // Each case copies the fixture (plus an optional overlay from evals/overlays/) into a temp
 // directory and runs headless Claude Code there with this plugin loaded, edits accepted, and
-// Bash allowed, so it is slow and spends real tokens (several minutes per case). The fixture
+// Bash allowed inside Claude Code's sandbox (writes only to the copy and a temp dir, network only
+// to the npm registry; see eval-sandbox.mjs), so it is slow and spends real tokens (several
+// minutes per case). The fixture
 // itself is never touched. After the run the script checks evals/flow.json's markers against
 // the stream-json transcript and the copy's git state, and prints one row per step plus each
 // case's completion rate.
 //
 // Exit code: 0 when every step of every case passed, 1 otherwise, 3 when a case was cut short
 // (usage limit, API error, timeout) and so could not be scored. Needs `claude` and `git`.
-import { readFileSync, mkdtempSync, cpSync, rmSync, writeFileSync } from "node:fs";
+import { sandboxArgs } from "./eval-sandbox.mjs";
+import { readFileSync, mkdtempSync, mkdirSync, cpSync, rmSync, writeFileSync } from "node:fs";
 import { spawn, execFileSync } from "node:child_process";
 import { tmpdir } from "node:os";
 import { join, resolve, dirname } from "node:path";
@@ -32,6 +35,8 @@ const maxTurns = String(args["max-turns"] ?? 150);
 const timeoutMs = Number(args["timeout-min"] ?? 30) * 60_000;
 const only = args.only ? new Set(args.only.split(",")) : null;
 const repeat = Math.max(1, Number(args.repeat ?? 1));
+// Runs are sandboxed (see eval-sandbox.mjs); --unsandboxed turns that off, e.g. on native Windows.
+const unsandboxed = "unsandboxed" in args;
 if (!fixture) { console.error("eval-flow: --fixture <path> is required"); process.exit(2); }
 
 const { cases } = JSON.parse(readFileSync(join(root, "evals/flow.json"), "utf8"));
@@ -39,6 +44,9 @@ const chosen = cases.filter((c) => !only || only.has(c.id));
 // --repeat N runs each case N times (ids get a #n suffix) to show how stable each step is.
 const selected = chosen.flatMap((c) => (repeat === 1 ? [c] : Array.from({ length: repeat }, (_, i) => ({ ...c, id: `${c.id}#${i + 1}`, base: c.id }))));
 const outDir = mkdtempSync(join(tmpdir(), "gmstack-flow-"));
+// npm's default cache (~/.npm) is outside the sandbox; give the runs one of their own.
+const npmCache = join(outDir, "npm-cache");
+mkdirSync(npmCache);
 // A run cut short by a usage/rate limit or an API error measures nothing; report it as
 // INCOMPLETE instead of scoring it.
 const incompleteReason = (out) => {
@@ -128,9 +136,9 @@ function runCase(c) {
     const started = Date.now();
     const child = spawn(
       "claude",
-      ["-p", "--plugin-dir", root, "--model", model, "--max-turns", maxTurns, "--permission-mode", "acceptEdits",
+      ["-p", "--plugin-dir", root, ...sandboxArgs(unsandboxed, { autoAllowBash: true, allowWrite: [npmCache] }), "--model", model, "--max-turns", maxTurns, "--permission-mode", "acceptEdits",
         "--allowedTools", "Bash Read Write Edit Glob Grep Skill Agent Task ToolSearch TaskCreate TaskUpdate TaskList TaskGet TodoWrite", "--output-format", "stream-json", "--verbose", c.prompt],
-      { cwd: work, stdio: ["ignore", "pipe", "pipe"] },
+      { cwd: work, stdio: ["ignore", "pipe", "pipe"], env: { ...process.env, npm_config_cache: npmCache } },
     );
     const timer = setTimeout(() => child.kill("SIGTERM"), timeoutMs);
     let out = "";

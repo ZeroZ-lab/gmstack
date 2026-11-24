@@ -200,9 +200,13 @@ docs/DESIGN.md
 | `deslop` 以"diff 很小，没什么可清理"为由跳过 | 把 skill 的结论提前下了 | "没什么可做"是 skill 跑完后给的结论；`deslop` 无改动时也要输出一行证据 |
 | 撞到 5 小时额度的运行被算成低分 | 评测脚本不区分"失败"和"没跑完" | 两个评测脚本识别为 INCOMPLETE，退出码 3，不计入比率 |
 | "新建项目"直接调用 `init` skill，绕过 `gm`：没有任务列表、没有独立审查，还自己跑了 `brew install gitleaks` | `init` 的描述也匹配建项目请求；"装软件前先问"只写在 `gm` 里 | `init` 开头要求先经过 `gm`；`gm`、`init`、`verify` 都写明不准在机器上装软件，缺工具就让那一步 FAIL 并给出安装命令 |
-| investigation 读了 playbook 但从不建任务列表（0/5） | `gm` 写着"问题属于小事，不需要 playbook"，和 investigation 自相矛盾 | 小事只指与本仓库无关的常识问题；关于本仓库的问题走 investigation，包括任务列表 |
+| 评测里的 agent 能在宿主机上做任何事（上面的 `brew install` 就是这样发生的） | 流程评测放开了 Bash，没有隔离 | 两个评测脚本都用 `--settings` 打开 Claude Code 自带沙箱：只能写临时副本、临时目录和评测专用的 npm 缓存，网络只放行 npm registry，禁止退出沙箱重试，沙箱起不来就直接失败；另外拒绝 `sudo`、`brew`、全局安装、`git push`。已实测写家目录、访问其他网站、`brew install` 都被拦下 |
+| review 用例里 agent 不派审查子代理，自己审完并注明"不独立" | Claude Code 自带的"除非用户要求，不要派子代理"压过了 review skill 的步骤 | review skill 写明：要求 gmstack 审查，或 playbook 走到独立审查这一步，本身就是派子代理的请求；确实派不了时要标"不独立" |
+| investigation 读了 playbook 但从不建任务列表（0/5） | `gm` 写着"问题属于小事，不需要 playbook"，和 investigation 自相矛盾 | 小事只指与本仓库无关的常识问题；关于本仓库的问题走 investigation，包括任务列表。之后在沙箱里又掉到 0/3，于是把"先建任务列表"写进第 1 步本身，回到 2/3，仍不稳定 |
 
 流程评测覆盖全部 10 个 playbook（12 个用例；handoff 分暂停和恢复两例，init 从空仓库开始）。新增的 9 个用例首轮 60/67，修改后 refactor、prototype、review、gate、progress、handoff-pause 各 1 次全过，handoff-resume、init 各 2 次全过，investigation 3 次全过；路由评测仍 15/15。
+
+加沙箱后（0.4.1 + 本轮修改）12 个用例全量跑一次 93/98；修完 review 子代理和 prototype 标记后，review 2 次、prototype 3 次全过，investigation 的任务列表 2/3；路由评测 15/15。
 
 bug-fix 用例（各 3 次）：完成率 79% → 91%（`tdd` 修好）→ 100%（`deslop` 修好，33/33，每步 3/3）。同一版本下 feature 两个用例 20/20，路由评测 15/15。经验：规则写在 agent 动手前最后读到的文件里（playbook 开头）比写在入口 skill 里更管用；能被工具摩擦打断的步骤（延迟加载）要把绕过方法写出来。
 

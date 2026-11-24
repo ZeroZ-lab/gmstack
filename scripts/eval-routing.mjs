@@ -3,7 +3,7 @@
 //
 // Usage:
 //   node scripts/eval-routing.mjs --fixture <path to a gmstack-managed project> [--model sonnet]
-//                                 [--only id,id] [--concurrency 3] [--max-turns 10]
+//                                 [--only id,id] [--concurrency 3] [--max-turns 10] [--unsandboxed]
 //
 // Each case runs headless Claude Code in its normal mode on a fresh copy of the fixture
 // ("project") or an empty directory ("empty"), with this plugin loaded via --plugin-dir. A case's
@@ -16,6 +16,7 @@
 //
 // Exit code: 0 when every case passes, 1 otherwise, 3 when a case was cut short (usage limit,
 // API error, crash) and so could not be scored. Needs the `claude` CLI on PATH.
+import { sandboxArgs } from "./eval-sandbox.mjs";
 import { readFileSync, mkdtempSync, cpSync, rmSync, writeFileSync, mkdirSync } from "node:fs";
 import { spawn } from "node:child_process";
 import { tmpdir } from "node:os";
@@ -30,6 +31,8 @@ const fixture = args.fixture && resolve(args.fixture);
 const model = args.model ?? "sonnet";
 const concurrency = Number(args.concurrency ?? 3);
 const maxTurns = String(args["max-turns"] ?? 10);
+// Runs are sandboxed (see eval-sandbox.mjs); --unsandboxed turns that off, e.g. on native Windows.
+const unsandboxed = "unsandboxed" in args;
 const only = args.only ? new Set(args.only.split(",")) : null;
 
 const { cases } = JSON.parse(readFileSync(join(root, "evals/routing.json"), "utf8"));
@@ -60,7 +63,7 @@ function runCase(c) {
     if (c.overlay) cpSync(join(root, "evals/overlays", c.overlay), work, { recursive: true });
     const child = spawn(
       "claude",
-      ["-p", "--plugin-dir", root, "--model", model, "--max-turns", maxTurns, "--permission-mode", "default",
+      ["-p", "--plugin-dir", root, ...sandboxArgs(unsandboxed), "--model", model, "--max-turns", maxTurns, "--permission-mode", "default",
         "--allowedTools", "Read Glob Grep Skill Bash(node:*)", "--output-format", "stream-json", "--verbose", c.prompt],
       { cwd: work, stdio: ["ignore", "pipe", "pipe"] },
     );
