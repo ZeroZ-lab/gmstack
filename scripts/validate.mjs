@@ -143,10 +143,12 @@ if (existsSync(join(root, "evals/flow.json"))) {
   try {
     for (const c of JSON.parse(read("evals/flow.json")).cases) {
       overlayOk(c, "evals/flow.json");
+      if (c.fixture !== "project" && c.fixture !== "empty") fail(`evals/flow.json: case ${c.id} fixture must be "project" or "empty"`);
+      for (const step of c.steps) if (step.min !== undefined && !(Number.isInteger(step.min) && step.min > 0)) fail(`evals/flow.json: case ${c.id} step ${step.id} min must be a positive integer`);
       for (const step of c.steps) for (const m of step.any) {
-        const [kind, ...rest] = m.split(":");
-        if (m === "agent") continue;
-        if (!["skill", "read", "bash", "changed", "tool"].includes(kind)) fail(`evals/flow.json: case ${c.id} step ${step.id} has unknown marker "${m}"`);
+        const [kind, ...rest] = m.replace(/^!/, "").split(":");
+        if (m.replace(/^!/, "") === "agent") continue;
+        if (!["skill", "read", "wrote", "bash", "changed", "tool"].includes(kind)) fail(`evals/flow.json: case ${c.id} step ${step.id} has unknown marker "${m}"`);
         else if (kind === "skill") nameOk("evals/flow.json", c.id, "skill", rest.join(":"));
         else if (kind === "tool") continue;
         else try { new RegExp(rest.join(":")); } catch (e) { fail(`evals/flow.json: case ${c.id} step ${step.id}: ${e.message}`); }

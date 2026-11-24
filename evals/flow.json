@@ -1,5 +1,5 @@
 {
-  "description": "Flow eval: does gmstack carry a task through its playbook's steps, not just route it? Each case may run a 'setup' shell command in the copy first (committed as the baseline, e.g. to plant a bug), then runs a real, writable task on a throwaway copy of the fixture and checks the transcript and the resulting files for one marker per playbook step. A step passes when any of its markers is found. Markers: 'skill:<name>' (the gmstack skill was invoked, or its SKILL.md read), 'read:<regex>' (a file whose path matches was read), 'bash:<regex>' (a shell command matched), 'agent' (a subagent was spawned), 'tool:<name>' (that tool was called), 'changed:<regex>' (a file whose path matches was added or modified, committed or not). Completion rate = steps passed / steps checked.",
+  "description": "Flow eval: does gmstack carry a task through its playbook's steps, not just route it? Each case starts from a copy of the fixture ('fixture': 'project') or an empty git repo ('empty'), may run a 'setup' shell command (committed with the copy as the baseline, e.g. to plant a bug) and a 'wip' command (run after the baseline and left uncommitted), then runs a real, writable task on a throwaway copy of the fixture and checks the transcript and the resulting files for one marker per playbook step. A step passes when any of its markers is found, at least 'min' times when the step sets it (default 1). Markers: 'skill:<name>' (the gmstack skill was invoked, or its SKILL.md read), 'read:<regex>' (a file whose path matches was read), 'bash:<regex>' (a shell command matched), 'agent' (a subagent was spawned), 'tool:<name>' (that tool was called), 'changed:<regex>' (a tracked or untracked file whose path matches was added or modified, committed or not), 'wrote:<regex>' (the Write or Edit tool targeted a matching absolute path; sees git-ignored files). A leading '!' inverts a marker: the step passes when it was never seen. Completion rate = steps passed / steps checked.",
   "cases": [
     {
       "id": "feature",
@@ -211,6 +211,498 @@
           "id": "count",
           "any": [
             "bash:count\\.mjs"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "refactor",
+      "fixture": "project",
+      "prompt": "Move the command-line argument parsing (parseCliArgs) out of src/sum.ts into its own module, src/args.ts. Behavior must not change.",
+      "steps": [
+        {
+          "id": "route",
+          "any": [
+            "skill:gm"
+          ]
+        },
+        {
+          "id": "playbook",
+          "any": [
+            "read:skills/gm/playbooks/refactor\\.md$",
+            "bash:check-playbooks\\.mjs.*--show[ =]+refactor"
+          ]
+        },
+        {
+          "id": "task-list",
+          "any": [
+            "tool:TaskCreate",
+            "tool:TodoWrite"
+          ]
+        },
+        {
+          "id": "callers",
+          "any": [
+            "bash:(grep|rg).*parseCliArgs",
+            "tool:Grep"
+          ]
+        },
+        {
+          "id": "baseline-and-final-verify",
+          "min": 2,
+          "any": [
+            "bash:npm run verify|scripts/verify\\.sh"
+          ]
+        },
+        {
+          "id": "new-module",
+          "any": [
+            "changed:^src/args\\.ts$"
+          ]
+        },
+        {
+          "id": "independent-review",
+          "any": [
+            "skill:review",
+            "agent"
+          ]
+        },
+        {
+          "id": "deslop",
+          "any": [
+            "skill:deslop"
+          ]
+        },
+        {
+          "id": "record",
+          "any": [
+            "changed:^CHECKLIST\\.md$"
+          ]
+        },
+        {
+          "id": "count",
+          "any": [
+            "bash:count\\.mjs"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "investigation",
+      "fixture": "project",
+      "prompt": "Why does `tinycalc 1 1e3` get rejected? Is that deliberate?",
+      "steps": [
+        {
+          "id": "route",
+          "any": [
+            "skill:gm"
+          ]
+        },
+        {
+          "id": "playbook",
+          "any": [
+            "read:skills/gm/playbooks/investigation\\.md$",
+            "bash:check-playbooks\\.mjs.*--show[ =]+investigation"
+          ]
+        },
+        {
+          "id": "task-list",
+          "any": [
+            "tool:TaskCreate",
+            "tool:TodoWrite"
+          ]
+        },
+        {
+          "id": "read-code",
+          "any": [
+            "read:src/sum\\.ts$"
+          ]
+        },
+        {
+          "id": "observe",
+          "any": [
+            "bash:(dist/cli\\.js|tinycalc|npm start).*1e3",
+            "bash:git (log|blame)"
+          ]
+        },
+        {
+          "id": "no-changes",
+          "any": [
+            "!changed:."
+          ]
+        }
+      ]
+    },
+    {
+      "id": "prototype",
+      "fixture": "project",
+      "prompt": "Would summing 10,000 arguments be faster with the current BigInt-scaled decimals or with plain Number addition plus rounding? Try both and tell me which to keep.",
+      "steps": [
+        {
+          "id": "route",
+          "any": [
+            "skill:gm"
+          ]
+        },
+        {
+          "id": "playbook",
+          "any": [
+            "read:skills/gm/playbooks/prototype\\.md$",
+            "bash:check-playbooks\\.mjs.*--show[ =]+prototype"
+          ]
+        },
+        {
+          "id": "task-list",
+          "any": [
+            "tool:TaskCreate",
+            "tool:TodoWrite"
+          ]
+        },
+        {
+          "id": "measure",
+          "min": 2,
+          "any": [
+            "bash:\\bnode\\b"
+          ]
+        },
+        {
+          "id": "outside-product",
+          "any": [
+            "!changed:^src/"
+          ]
+        },
+        {
+          "id": "no-checklist",
+          "any": [
+            "!changed:^CHECKLIST\\.md$"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "review",
+      "fixture": "project",
+      "setup": "git -c user.name=eval -c user.email=eval@localhost add -A && git -c user.name=eval -c user.email=eval@localhost commit -qm \"fixture state\" && sed -i.bak \"/const DECIMAL/s#)\\\\$/;#)(e[0-9]+)?$/;#\" src/sum.ts && rm src/sum.ts.bak && grep -q \"(e\\[0-9\\]+)\" src/sum.ts && git -c user.name=eval -c user.email=eval@localhost commit -qam \"feat: accept exponent notation like 1e3\"",
+      "prompt": "Review the last commit.",
+      "steps": [
+        {
+          "id": "route",
+          "any": [
+            "skill:gm"
+          ]
+        },
+        {
+          "id": "playbook",
+          "any": [
+            "read:skills/gm/playbooks/review\\.md$",
+            "bash:check-playbooks\\.mjs.*--show[ =]+review"
+          ]
+        },
+        {
+          "id": "task-list",
+          "any": [
+            "tool:TaskCreate",
+            "tool:TodoWrite"
+          ]
+        },
+        {
+          "id": "pin-range",
+          "any": [
+            "bash:git (diff|show|log)"
+          ]
+        },
+        {
+          "id": "verify",
+          "any": [
+            "bash:npm run verify|scripts/verify\\.sh"
+          ]
+        },
+        {
+          "id": "reviewer",
+          "any": [
+            "agent",
+            "skill:review"
+          ]
+        },
+        {
+          "id": "no-fix",
+          "any": [
+            "!changed:^src/"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "gate",
+      "fixture": "project",
+      "prompt": "Can we release tinycalc?",
+      "steps": [
+        {
+          "id": "route",
+          "any": [
+            "skill:gm"
+          ]
+        },
+        {
+          "id": "playbook",
+          "any": [
+            "read:skills/gm/playbooks/gate\\.md$",
+            "bash:check-playbooks\\.mjs.*--show[ =]+gate"
+          ]
+        },
+        {
+          "id": "task-list",
+          "any": [
+            "tool:TaskCreate",
+            "tool:TodoWrite"
+          ]
+        },
+        {
+          "id": "verify",
+          "any": [
+            "bash:npm run verify|scripts/verify\\.sh"
+          ]
+        },
+        {
+          "id": "checklist-skill",
+          "any": [
+            "skill:checklist"
+          ]
+        },
+        {
+          "id": "protected-files",
+          "any": [
+            "bash:git log.*(verify|\\.github|eslint|vitest|tsconfig)"
+          ]
+        },
+        {
+          "id": "independent-review",
+          "any": [
+            "agent"
+          ]
+        },
+        {
+          "id": "record",
+          "any": [
+            "changed:^CHECKLIST\\.md$"
+          ]
+        },
+        {
+          "id": "count",
+          "any": [
+            "bash:count\\.mjs"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "progress",
+      "fixture": "project",
+      "prompt": "How far along is tinycalc, and what should I do next?",
+      "steps": [
+        {
+          "id": "route",
+          "any": [
+            "skill:gm"
+          ]
+        },
+        {
+          "id": "playbook",
+          "any": [
+            "read:skills/gm/playbooks/progress\\.md$",
+            "bash:check-playbooks\\.mjs.*--show[ =]+progress"
+          ]
+        },
+        {
+          "id": "task-list",
+          "any": [
+            "tool:TaskCreate",
+            "tool:TodoWrite"
+          ]
+        },
+        {
+          "id": "verify",
+          "any": [
+            "bash:npm run verify|scripts/verify\\.sh"
+          ]
+        },
+        {
+          "id": "audit",
+          "any": [
+            "skill:checklist"
+          ]
+        },
+        {
+          "id": "count",
+          "any": [
+            "bash:count\\.mjs"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "handoff-pause",
+      "fixture": "project",
+      "wip": "printf '\\n// TODO --json: print {\"sum\": N} instead of a bare number\\n' >> src/cli.ts",
+      "prompt": "I started on a --json flag (see the uncommitted TODO in src/cli.ts). Let's stop here for today; I'll continue tomorrow.",
+      "steps": [
+        {
+          "id": "route",
+          "any": [
+            "skill:gm"
+          ]
+        },
+        {
+          "id": "playbook",
+          "any": [
+            "read:skills/gm/playbooks/handoff\\.md$",
+            "bash:check-playbooks\\.mjs.*--show[ =]+handoff"
+          ]
+        },
+        {
+          "id": "task-list",
+          "any": [
+            "tool:TaskCreate",
+            "tool:TodoWrite"
+          ]
+        },
+        {
+          "id": "verify",
+          "any": [
+            "bash:npm run verify|scripts/verify\\.sh"
+          ]
+        },
+        {
+          "id": "note",
+          "any": [
+            "wrote:/\\.gm/trail/[^/]+\\.md$"
+          ]
+        },
+        {
+          "id": "gitignore",
+          "any": [
+            "changed:^\\.gitignore$"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "handoff-resume",
+      "fixture": "project",
+      "setup": "mkdir -p .gm/trail && printf '.gm/trail/\\n' >> .gitignore && printf '# Add --json flag\\n\\n- Paused: 2026-11-20 18:00 UTC\\n- Uncommitted: none\\n\\n## Goal\\nAdd a --json flag that prints {\"sum\": N} instead of a bare number. Playbook: feature, at step 4\\n\\n## Done (with evidence)\\n- Acceptance criteria agreed: `tinycalc --json 1 2` prints {\"sum\": 3}; works with --precision (sum becomes a string).\\n\\n## Not done\\n- Everything from the test-first change on.\\n\\n## Current state\\nverify: not run before pausing (nothing changed since the last commit)\\n\\n## Next steps\\n1. Write the failing test for --json in src/sum.test.ts.\\n' > .gm/trail/json-flag.md",
+      "prompt": "Continue where we left off.",
+      "steps": [
+        {
+          "id": "route",
+          "any": [
+            "skill:gm"
+          ]
+        },
+        {
+          "id": "playbook",
+          "any": [
+            "read:skills/gm/playbooks/handoff\\.md$",
+            "bash:check-playbooks\\.mjs.*--show[ =]+handoff"
+          ]
+        },
+        {
+          "id": "read-note",
+          "any": [
+            "read:/\\.gm/trail/",
+            "bash:\\.gm/trail"
+          ]
+        },
+        {
+          "id": "reality-check",
+          "any": [
+            "bash:git (status|log)"
+          ]
+        },
+        {
+          "id": "verify",
+          "any": [
+            "bash:npm run verify|scripts/verify\\.sh"
+          ]
+        },
+        {
+          "id": "continues-playbook",
+          "any": [
+            "skill:tdd"
+          ]
+        },
+        {
+          "id": "test-added",
+          "any": [
+            "changed:\\.test\\.ts$"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "init",
+      "fixture": "empty",
+      "prompt": "Create a new project here: a TypeScript command-line tool called wordcount that prints the number of words in each file given as an argument. Tier M, no extra tags, defaults for everything else. Don't stop to ask me questions; I won't be around to answer.",
+      "steps": [
+        {
+          "id": "route",
+          "any": [
+            "skill:gm"
+          ]
+        },
+        {
+          "id": "playbook",
+          "any": [
+            "read:skills/gm/playbooks/init\\.md$",
+            "bash:check-playbooks\\.mjs.*--show[ =]+init"
+          ]
+        },
+        {
+          "id": "task-list",
+          "any": [
+            "tool:TaskCreate",
+            "tool:TodoWrite"
+          ]
+        },
+        {
+          "id": "init-skill",
+          "any": [
+            "skill:init"
+          ]
+        },
+        {
+          "id": "checklist",
+          "any": [
+            "changed:^CHECKLIST\\.md$"
+          ]
+        },
+        {
+          "id": "agents-md",
+          "any": [
+            "changed:^AGENTS\\.md$"
+          ]
+        },
+        {
+          "id": "verify-entry",
+          "any": [
+            "changed:^scripts/verify\\.sh$"
+          ]
+        },
+        {
+          "id": "verify",
+          "any": [
+            "bash:npm run verify|scripts/verify\\.sh"
+          ]
+        },
+        {
+          "id": "independent-review",
+          "any": [
+            "agent"
+          ]
+        },
+        {
+          "id": "secret-scan",
+          "any": [
+            "bash:gitleaks"
           ]
         }
       ]

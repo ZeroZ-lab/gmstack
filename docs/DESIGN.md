@@ -202,6 +202,10 @@ docs/DESIGN.md
 | 从来不建任务列表，"报告前核对任务列表"从未生效 | headless 下 `TaskCreate` 是延迟加载工具，要先 `ToolSearch` | 每个 playbook 开头加 **Start** 行，写明加载方式；`validate` 检查这一行 |
 | `deslop` 以"diff 很小，没什么可清理"为由跳过 | 把 skill 的结论提前下了 | "没什么可做"是 skill 跑完后给的结论；`deslop` 无改动时也要输出一行证据 |
 | 撞到 5 小时额度的运行被算成低分 | 评测脚本不区分"失败"和"没跑完" | 两个评测脚本识别为 INCOMPLETE，退出码 3，不计入比率 |
+| "新建项目"直接调用 `init` skill，绕过 `gm`：没有任务列表、没有独立审查，还自己跑了 `brew install gitleaks` | `init` 的描述也匹配建项目请求；"装软件前先问"只写在 `gm` 里 | `init` 开头要求先经过 `gm`；`gm`、`init`、`verify` 都写明不准在机器上装软件，缺工具就让那一步 FAIL 并给出安装命令 |
+| investigation 读了 playbook 但从不建任务列表（0/5） | `gm` 写着"问题属于小事，不需要 playbook"，和 investigation 自相矛盾 | 小事只指与本仓库无关的常识问题；关于本仓库的问题走 investigation，包括任务列表 |
+
+流程评测覆盖全部 10 个 playbook（12 个用例；handoff 分暂停和恢复两例，init 从空仓库开始）。新增的 9 个用例首轮 60/67，修改后 refactor、prototype、review、gate、progress、handoff-pause 各 1 次全过，handoff-resume、init 各 2 次全过，investigation 3 次全过；路由评测仍 15/15。
 
 bug-fix 用例（各 3 次）：完成率 79% → 91%（`tdd` 修好）→ 100%（`deslop` 修好，33/33，每步 3/3）。同一版本下 feature 两个用例 20/20，路由评测 15/15。经验：规则写在 agent 动手前最后读到的文件里（playbook 开头）比写在入口 skill 里更管用；能被工具摩擦打断的步骤（延迟加载）要把绕过方法写出来。
 

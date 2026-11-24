@@ -118,7 +118,7 @@ Routing eval: runs each prompt in [evals/routing.json](evals/routing.json) throu
 node scripts/eval-flow.mjs --fixture /path/to/a/gmstack-managed/git/repo
 ```
 
-Flow eval: runs whole tasks from [evals/flow.json](evals/flow.json) on a throwaway copy of the fixture, with edits allowed, and checks one marker per playbook step (tdd invoked, verify run, a reviewer subagent spawned, CHECKLIST.md changed, and so on). It prints each case's completion rate. Slow: several minutes and real tokens per case.
+Flow eval: runs whole tasks from [evals/flow.json](evals/flow.json) on a throwaway copy of the fixture, with edits allowed, and checks one marker per playbook step (tdd invoked, verify run, a reviewer subagent spawned, CHECKLIST.md changed, no source file touched, and so on). Every playbook has at least one case; `init` starts from an empty repo, and the handoff cases plant uncommitted work or a saved note. It prints each case's completion rate. Slow: several minutes and real tokens per case. The agent runs with Bash on your machine, not in a sandbox, so run it where that is acceptable.
 
 Design and roadmap: [docs/DESIGN.md](docs/DESIGN.md).
 

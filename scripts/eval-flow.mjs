@@ -51,7 +51,7 @@ const incompleteReason = (out) => {
   if (result.is_error && result.subtype !== "error_max_turns") return `${result.subtype}: ${text.split("\n")[0]}`.slice(0, 160);
   return null;
 };
-const git = (cwd, ...a) => execFileSync("git", ["-C", cwd, ...a], { encoding: "utf8" });
+const git = (cwd, ...a) => execFileSync("git", ["-C", cwd, ...a], { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] });
 
 function changedFiles(work, startHead) {
   const files = new Set();
@@ -65,20 +65,21 @@ function changedFiles(work, startHead) {
 }
 
 function evidence(out) {
-  const ev = { skills: new Set(), reads: [], bash: [], agents: 0, tools: new Set() };
+  const ev = { skills: [], reads: [], writes: [], bash: [], agents: 0, tools: [] };
   for (const line of out.split("\n")) {
     let msg;
     try { msg = JSON.parse(line); } catch { continue; }
     for (const block of msg?.message?.content ?? []) {
       if (block.type !== "tool_use") continue;
       const input = block.input ?? {};
-      ev.tools.add(block.name);
-      if (block.name === "Skill" && typeof input.skill === "string") ev.skills.add(input.skill.replace(/^gmstack:/, ""));
+      ev.tools.push(block.name);
+      if (block.name === "Skill" && typeof input.skill === "string") ev.skills.push(input.skill.replace(/^gmstack:/, ""));
       if (block.name === "Read" && typeof input.file_path === "string") {
         ev.reads.push(input.file_path);
         const m = input.file_path.match(/skills\/([a-z-]+)\/SKILL\.md$/);
-        if (m) ev.skills.add(m[1]);
+        if (m) ev.skills.push(m[1]);
       }
+      if (["Write", "Edit", "NotebookEdit"].includes(block.name) && typeof (input.file_path ?? input.notebook_path) === "string") ev.writes.push(input.file_path ?? input.notebook_path);
       if (block.name === "Bash" && typeof input.command === "string") ev.bash.push(input.command);
       if (block.name === "Agent" || block.name === "Task") ev.agents++;
     }
@@ -86,23 +87,30 @@ function evidence(out) {
   return ev;
 }
 
-function marker(m, ev, changed) {
-  if (m === "agent") return ev.agents > 0;
+// How many times a marker was seen. "!<marker>" inverts it: 1 when the marker was never seen.
+function count(m, ev, changed) {
+  if (m.startsWith("!")) return count(m.slice(1), ev, changed) ? 0 : 1;
+  if (m === "agent") return ev.agents;
   const [kind, ...rest] = m.split(":");
   const arg = rest.join(":");
-  if (kind === "skill") return ev.skills.has(arg);
-  if (kind === "tool") return ev.tools.has(arg);
+  if (kind === "skill") return ev.skills.filter((s) => s === arg).length;
+  if (kind === "tool") return ev.tools.filter((t) => t === arg).length;
   const re = new RegExp(arg);
-  if (kind === "read") return ev.reads.some((p) => re.test(p));
-  if (kind === "bash") return ev.bash.some((c) => re.test(c));
-  if (kind === "changed") return [...changed].some((f) => re.test(f));
+  if (kind === "read") return ev.reads.filter((p) => re.test(p)).length;
+  if (kind === "wrote") return ev.writes.filter((p) => re.test(p)).length;
+  if (kind === "bash") return ev.bash.filter((c) => re.test(c)).length;
+  if (kind === "changed") return [...changed].filter((f) => re.test(f)).length;
   throw new Error(`unknown marker "${m}"`);
 }
+// A step passes when any of its markers was seen at least `min` times (default 1).
+const stepPasses = (s, ev, changed) => s.any.some((m) => count(m, ev, changed) >= (s.min ?? 1));
 
 function runCase(c) {
   return new Promise((done) => {
     const work = mkdtempSync(join(tmpdir(), `gmstack-flow-${c.id.replace("#", "-")}-`));
-    cpSync(fixture, work, { recursive: true });
+    // "fixture": "empty" starts from an empty git repo (e.g. for init); anything else copies --fixture.
+    if (c.fixture === "empty") git(work, "init", "-q");
+    else cpSync(fixture, work, { recursive: true });
     if (c.overlay) cpSync(join(root, "evals/overlays", c.overlay), work, { recursive: true });
     let startHead = "";
     try {
@@ -112,8 +120,10 @@ function runCase(c) {
       git(work, "add", "-A");
       if (git(work, "status", "--porcelain")) git(work, "-c", "user.name=eval", "-c", "user.email=eval@localhost", "commit", "-qm", "eval baseline");
       startHead = git(work, "rev-parse", "HEAD").trim();
+      // "wip" runs after the baseline and stays uncommitted: work in progress the task finds.
+      if (c.wip) execFileSync("sh", ["-c", c.wip], { cwd: work, stdio: "ignore" });
     } catch (e) {
-      if (c.setup) { rmSync(work, { recursive: true, force: true }); return done({ id: c.id, steps: c.steps.map((s) => ({ id: s.id, pass: false })), exit: null, minutes: "0", stop: `setup failed: ${e.message.split("\n")[0]}`, changed: [] }); }
+      if (c.setup || c.wip) { rmSync(work, { recursive: true, force: true }); return done({ id: c.id, steps: c.steps.map((s) => ({ id: s.id, pass: false })), exit: null, minutes: "0", stop: `setup failed: ${e.message.split("\n")[0]}`, changed: [] }); }
     }
     const started = Date.now();
     const child = spawn(
@@ -132,7 +142,7 @@ function runCase(c) {
       const ev = evidence(out);
       let changed = new Set();
       try { changed = changedFiles(work, startHead); } catch {}
-      const steps = c.steps.map((s) => ({ id: s.id, pass: s.any.some((m) => marker(m, ev, changed)) }));
+      const steps = c.steps.map((s) => ({ id: s.id, pass: stepPasses(s, ev, changed) }));
       const result = out.split("\n").map((l) => { try { return JSON.parse(l); } catch { return null; } }).filter((m) => m?.type === "result").pop();
       rmSync(work, { recursive: true, force: true });
       done({ id: c.id, base: c.base ?? c.id, steps, incomplete: incompleteReason(out), exit: code, minutes: ((Date.now() - started) / 60000).toFixed(1), stop: result?.subtype ?? "no result", changed: [...changed] });

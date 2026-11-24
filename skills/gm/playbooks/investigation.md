@@ -2,7 +2,7 @@
 
 **When**: the user wants an answer, not a change — "why does X happen?", "how does Y work?", "where is Z decided?", "is this safe?", "what would it take to…?".
 
-**Start**: before step 1, create the task list from the steps below: one `TaskCreate` per step, verbatim. If `TaskCreate` is listed but not loaded, load it first with `ToolSearch` (`select:TaskCreate,TaskUpdate,TaskList`). A step that names a skill invokes it with the Skill tool, even when the change looks trivial.
+**Start**: before step 1, create the task list from the steps below: one `TaskCreate` per step, verbatim. If `TaskCreate` is listed but not loaded, load it first with `ToolSearch` (`select:TaskCreate,TaskUpdate,TaskList`). A step that names a skill invokes it with the Skill tool, even when the change looks trivial. A question gets the task list too: the steps below are how the answer earns its evidence labels, and step 5 is easy to drop without it.
 
 The output is an answer backed by evidence. **No code changes.** Temporary probes (a scratch script, a debug run) are allowed outside the repo's tracked files and are removed afterwards.
 
