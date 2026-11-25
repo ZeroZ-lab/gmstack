@@ -25,3 +25,9 @@ export const sandboxSettings = ({ autoAllowBash, allowWrite }) => ({
 // Extra `claude` arguments: the sandbox settings, unless the caller opted out with --unsandboxed.
 export const sandboxArgs = (unsandboxed, { autoAllowBash = false, allowWrite = [] } = {}) =>
   unsandboxed ? [] : ["--settings", JSON.stringify(sandboxSettings({ autoAllowBash, allowWrite }))];
+
+// Tools the flow eval pre-approves. scripts/probe-sandbox.mjs runs with the same list, so what it
+// measures is what the flow eval's agent can do. Write and Edit are left out on purpose: listing
+// them approves every path, including $HOME (the sandbox only covers Bash). Without them,
+// --permission-mode acceptEdits approves edits inside the working directory only.
+export const FLOW_TOOLS = "Bash Read Glob Grep Skill Agent Task ToolSearch TaskCreate TaskUpdate TaskList TaskGet TodoWrite";

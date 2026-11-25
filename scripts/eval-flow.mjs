@@ -17,7 +17,7 @@
 //
 // Exit code: 0 when every step of every case passed, 1 otherwise, 3 when a case was cut short
 // (usage limit, API error, timeout) and so could not be scored. Needs `claude` and `git`.
-import { sandboxArgs } from "./eval-sandbox.mjs";
+import { sandboxArgs, FLOW_TOOLS } from "./eval-sandbox.mjs";
 import { readFileSync, mkdtempSync, mkdirSync, cpSync, rmSync, writeFileSync } from "node:fs";
 import { spawn, execFileSync } from "node:child_process";
 import { tmpdir } from "node:os";
@@ -137,7 +137,7 @@ function runCase(c) {
     const child = spawn(
       "claude",
       ["-p", "--plugin-dir", root, ...sandboxArgs(unsandboxed, { autoAllowBash: true, allowWrite: [npmCache] }), "--model", model, "--max-turns", maxTurns, "--permission-mode", "acceptEdits",
-        "--allowedTools", "Bash Read Write Edit Glob Grep Skill Agent Task ToolSearch TaskCreate TaskUpdate TaskList TaskGet TodoWrite", "--output-format", "stream-json", "--verbose", c.prompt],
+        "--allowedTools", FLOW_TOOLS, "--output-format", "stream-json", "--verbose", c.prompt],
       { cwd: work, stdio: ["ignore", "pipe", "pipe"], env: { ...process.env, npm_config_cache: npmCache } },
     );
     const timer = setTimeout(() => child.kill("SIGTERM"), timeoutMs);

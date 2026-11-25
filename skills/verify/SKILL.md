@@ -22,7 +22,8 @@ Verification is the evidence every gmstack result rests on. This skill runs the 
 ## Steps
 
 1. **Find the entry point.** Read AGENTS.md for the named command. Otherwise look, in order, for `scripts/verify.sh`, a `verify` target in `Makefile`/`justfile`, or a `verify` script in `package.json`.
-   - None found → report `BLOCKED: no verify entry point`. In a gmstack project, propose generating one per the contract (that is a change to a protected file, so it needs approval).
+   - None found, in a gmstack project (CHECKLIST.md exists) → report `BLOCKED: no verify entry point` and propose generating one per the contract (that is a change to a protected file, so it needs approval).
+   - None found, in a repo without CHECKLIST.md → run the project's own checks instead: its build, lint, typecheck, and test commands (`package.json` scripts, `Makefile` targets, CI workflow steps), each as one row of the report. Say `no verify entry point` in the report; it is not a FAIL.
 2. **Install dependencies** if they are missing (lockfile-respecting install: `npm ci`, `uv sync`, etc.). That means the project's own dependencies only. Never install a tool on the machine (`brew`, `apt`, global `npm`/`pip`): a step whose tool is missing FAILs, and the report gives the install command for the user to run.
 3. **Run it** from the repo root. Capture the exit code and the log path it prints. Do not pipe the command through `tail`, `head`, or `tee`: a pipe replaces the entry point's exit code with the last command's. If you must pipe, use `set -o pipefail` or record `$?` from a separate run.
 4. **Check the contract** when anything looks off: every step present and in order, no early exit, summary table printed, log written under `reports/`, non-zero exit on any FAIL. List each deviation.

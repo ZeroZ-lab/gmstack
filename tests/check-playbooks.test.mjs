@@ -151,6 +151,11 @@ test("CLI: exit 1 and no resolved playbook when there are problems; exit 0 other
 
   const r3 = spawnSync("node", [SCRIPT, "--root", good.root, "--show", "nope"], { env: { ...process.env, ...good.env }, encoding: "utf8" });
   assert.equal(r3.status, 2);
+
+  // Showing an extension by its own name points at the playbook it extends.
+  const r4 = spawnSync("node", [SCRIPT, "--root", good.root, "--show", "x"], { env: { ...process.env, ...good.env }, encoding: "utf8" });
+  assert.equal(r4.status, 2);
+  assert.match(r4.stderr, /"x" extends feature .*run --show feature/);
 });
 
 test("the examples in references/project-playbooks.md anchor on the current bundled steps", () => {

@@ -120,6 +120,12 @@ node scripts/eval-flow.mjs --fixture /path/to/a/gmstack-managed/git/repo
 
 Flow eval: runs whole tasks from [evals/flow.json](evals/flow.json) on a throwaway copy of the fixture, with edits allowed, and checks one marker per playbook step (tdd invoked, verify run, a reviewer subagent spawned, CHECKLIST.md changed, no source file touched, and so on). Every playbook has at least one case; `init` starts from an empty repo, and the handoff cases plant uncommitted work or a saved note. It prints each case's completion rate. Slow: several minutes and real tokens per case. The agent's Bash runs inside Claude Code's sandbox ([scripts/eval-sandbox.mjs](scripts/eval-sandbox.mjs)): it can write only to the throwaway copy, a temp dir, and a per-eval npm cache, reach only the npm registry, and never retry outside the sandbox; `sudo`, `brew`, global installs, and `git push` are denied outright. The run fails at startup if the sandbox can't start. macOS needs nothing extra; Linux needs `bubblewrap` and `socat`. Both evals take `--unsandboxed` to turn it off (native Windows has no sandbox).
 
+```bash
+node scripts/probe-sandbox.mjs
+```
+
+Sandbox probe: one short headless run with the flow eval's exact permissions that tries to write outside the working copy (Write tool and Bash), reach a non-allowlisted host, reach the npm registry, and write inside the copy, then checks the filesystem for what actually happened. Run it after changing [scripts/eval-sandbox.mjs](scripts/eval-sandbox.mjs).
+
 Design and roadmap: [docs/DESIGN.md](docs/DESIGN.md).
 
 Split out from [gm-skills](https://github.com/ZeroZ-lab/gm-skills), where it started as `checklist-project-init`.

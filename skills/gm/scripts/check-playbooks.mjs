@@ -288,7 +288,13 @@ function main(argv) {
   }
   if (show) {
     const text = resolvePlaybook(result, show);
-    if (text === null) { console.error(`no bundled or standalone playbook named "${show}"`); return 2; }
+    if (text === null) {
+      // An extension has no steps of its own: point at the playbook(s) it changes.
+      const ext = result.playbooks.find((p) => p.name === show && p.bases.length);
+      if (ext) console.error(`"${show}" extends ${ext.bases.join(", ")} and has no steps of its own: run --show ${ext.bases[0]} to read that playbook with this change applied`);
+      else console.error(`no bundled or standalone playbook named "${show}"`);
+      return 2;
+    }
     console.log(text);
     return 0;
   }

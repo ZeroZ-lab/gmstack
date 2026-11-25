@@ -216,6 +216,76 @@
       ]
     },
     {
+      "id": "feature-ungated",
+      "fixture": "project",
+      "setup": "rm -f CHECKLIST.md",
+      "prompt": "Add a --json flag that prints the result as {\"sum\": N} instead of a bare number. Don't set up gmstack in this repo.",
+      "steps": [
+        {
+          "id": "route",
+          "any": [
+            "skill:gm"
+          ]
+        },
+        {
+          "id": "playbook",
+          "any": [
+            "read:skills/gm/playbooks/feature\\.md$",
+            "bash:check-playbooks\\.mjs.*--show[ =]+feature"
+          ]
+        },
+        {
+          "id": "task-list",
+          "any": [
+            "tool:TaskCreate",
+            "tool:TodoWrite"
+          ]
+        },
+        {
+          "id": "tdd",
+          "any": [
+            "skill:tdd"
+          ]
+        },
+        {
+          "id": "test-added",
+          "any": [
+            "changed:\\.test\\.ts$"
+          ]
+        },
+        {
+          "id": "verify",
+          "any": [
+            "bash:npm run verify|scripts/verify\\.sh"
+          ]
+        },
+        {
+          "id": "real-surface",
+          "any": [
+            "bash:(dist/cli\\.js|tinycalc|npm start).*--json"
+          ]
+        },
+        {
+          "id": "independent-review",
+          "any": [
+            "agent"
+          ]
+        },
+        {
+          "id": "deslop",
+          "any": [
+            "skill:deslop"
+          ]
+        },
+        {
+          "id": "no-checklist",
+          "any": [
+            "!changed:^CHECKLIST\\.md$"
+          ]
+        }
+      ]
+    },
+    {
       "id": "refactor",
       "fixture": "project",
       "prompt": "Move the command-line argument parsing (parseCliArgs) out of src/sum.ts into its own module, src/args.ts. Behavior must not change.",
