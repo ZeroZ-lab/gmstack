@@ -7,7 +7,7 @@
 The output is an answer backed by evidence. **No code changes.** Temporary probes (a scratch script, a debug run) are allowed outside the repo's tracked files and are removed afterwards.
 
 1. Create the task list (see **Start**), then restate the question in one sentence and what a complete answer looks like.
-2. Gather evidence. Read the code paths involved; use `git log -p` / `git blame` for "why" questions; run the program or a probe to observe actual behavior. Route wide searches to subagents and keep only their summaries (see [guard-the-context](../references/principles/guard-the-context.md)).
+2. Gather evidence. Read the code paths involved; use `git log -p` / `git blame` for "why" questions; run the program or a probe to observe actual behavior. Route wide searches to subagents and keep only their summaries (see [guard-the-context](../references/principles.md#guard-the-context-window)).
 3. Form the answer. Where competing explanations exist, list them and check each against the evidence until one survives.
 4. Label every claim: **measured** (you ran or read it — cite command output or `file:line`), **inferred** (follows from measured facts — say from which), or **guess** (say what would confirm it).
 5. Clean up probes: delete scratch files; confirm `git status` shows nothing new from you.

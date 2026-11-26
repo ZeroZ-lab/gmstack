@@ -8,6 +8,9 @@
 #   - user:    a file ~/.config/gmstack/routing containing "off"
 # Any other value, or no setting, leaves routing on.
 #
+# Routing is also skipped outside a git repo or project: no git work tree, and no
+# package.json or CHECKLIST.md at the working directory.
+#
 # Always exits 0 so a problem here never blocks a session.
 
 is_off() { [ -f "$1" ] && [ "$(tr -d ' \t\r\n' <"$1" | tr 'A-Z' 'a-z')" = "off" ]; }
@@ -15,7 +18,11 @@ is_off() { [ -f "$1" ] && [ "$(tr -d ' \t\r\n' <"$1" | tr 'A-Z' 'a-z')" = "off" 
 [ "$(printf '%s' "${GMSTACK_ROUTING:-}" | tr 'A-Z' 'a-z')" = "off" ] && exit 0
 
 root=${CLAUDE_PROJECT_DIR:-$(pwd)}
-top=$(git -C "$root" rev-parse --show-toplevel 2>/dev/null) && root=$top
+if top=$(git -C "$root" rev-parse --show-toplevel 2>/dev/null); then
+  root=$top
+elif [ ! -f "$root/package.json" ] && [ ! -f "$root/CHECKLIST.md" ]; then
+  exit 0
+fi
 
 is_off "$root/.gmstack/routing" && exit 0
 is_off "${XDG_CONFIG_HOME:-$HOME/.config}/gmstack/routing" && exit 0

@@ -4,9 +4,10 @@
 // Checks:
 //   1. .claude-plugin/plugin.json parses and has name "gmstack" and a semver version
 //   2. every skills/<dir>/SKILL.md has frontmatter whose name equals <dir> and a description
-//   3. every relative markdown link in skills/** resolves to an existing file inside the repo
-//   4. every playbook and principle listed in skills/gm/SKILL.md exists, and every file in
-//      those folders is listed (no orphans)
+//   3. every relative markdown link in skills/** resolves to an existing file inside the repo,
+//      and a link with a #anchor into a markdown file names a heading that exists there
+//   4. skills/gm links the playbook index and principles; the index links every bundled playbook,
+//      and principles.md has an index entry for every principle heading (no orphans)
 //   5. every checklist item ID in the catalog is unique and every GATE ID is present
 //   6. package.json version matches plugin.json version
 //   7. hooks/hooks.json parses, every hook script it names exists and is executable, and
@@ -60,22 +61,39 @@ const walk = (d) => readdirSync(join(root, d)).flatMap((f) => {
   return statSync(join(root, rel)).isDirectory() ? walk(rel) : [rel];
 });
 const mdFiles = walk("skills").filter((f) => f.endsWith(".md"));
+// GitHub-style heading slug
+const slugOf = (h) => h.toLowerCase().replace(/[^a-z0-9 _-]/g, "").trim().replace(/ /g, "-");
+const headingsOf = (text) => new Set(
+  text.replace(/```[\s\S]*?```/g, "").split("\n").flatMap((l) => (l.match(/^#{1,6} (.+)$/) ? [slugOf(l.replace(/^#{1,6} /, ""))] : [])),
+);
 for (const f of mdFiles) {
   // strip fenced code blocks so example links are not checked
   const text = read(f).replace(/```[\s\S]*?```/g, "");
   for (const [, target] of text.matchAll(/\]\(([^)\s]+)\)/g)) {
-    if (/^(https?:|mailto:|#)/.test(target)) continue;
-    const abs = resolve(root, dirname(f), target.split("#")[0]);
-    if (relative(root, abs).startsWith("..")) fail(`${f}: link "${target}" leaves the plugin`);
-    else if (!existsSync(abs)) fail(`${f}: broken link "${target}"`);
+    if (/^(https?:|mailto:)/.test(target)) continue;
+    const [pathPart, anchor] = target.split("#");
+    const abs = pathPart ? resolve(root, dirname(f), pathPart) : resolve(root, f);
+    if (relative(root, abs).startsWith("..")) { fail(`${f}: link "${target}" leaves the plugin`); continue; }
+    if (!existsSync(abs)) { fail(`${f}: broken link "${target}"`); continue; }
+    if (anchor && abs.endsWith(".md") && !headingsOf(readFileSync(abs, "utf8")).has(anchor))
+      fail(`${f}: link "${target}" names a heading that does not exist`);
   }
 }
 
 // 4. gm index completeness
 const gm = read("skills/gm/SKILL.md");
-for (const folder of ["playbooks", "references/principles"]) {
-  const files = readdirSync(join(root, "skills/gm", folder)).filter((f) => f.endsWith(".md"));
-  for (const f of files) if (!gm.includes(`(${folder}/${f})`)) fail(`skills/gm/${folder}/${f}: not listed in gm/SKILL.md`);
+for (const target of ["references/playbook-index.md", "references/principles.md"]) {
+  if (!gm.includes(`(${target})`)) fail(`skills/gm/SKILL.md: does not link ${target}`);
+}
+const linkedFromGm = new Set(mdFiles.filter((f) => f.startsWith("skills/gm/")).flatMap((f) =>
+  [...read(f).matchAll(/\]\(([^)\s#]+)(?:#[^)\s]*)?\)/g)].map(([, t]) => relative(root, resolve(root, dirname(f), t)))));
+for (const f of readdirSync(join(root, "skills/gm/playbooks")).filter((f) => f.endsWith(".md"))) {
+  if (!linkedFromGm.has(`skills/gm/playbooks/${f}`)) fail(`skills/gm/playbooks/${f}: not listed in the gm index`);
+}
+const principles = read("skills/gm/references/principles.md");
+const principleIndex = new Set([...principles.matchAll(/\]\(#([^)]+)\)/g)].map((m) => m[1]));
+for (const h of principles.replace(/```[\s\S]*?```/g, "").matchAll(/^## (.+)$/gm)) {
+  if (!principleIndex.has(slugOf(h[1]))) fail(`skills/gm/references/principles.md: "${h[1]}" is not in the principle index`);
 }
 
 // 5. catalog IDs

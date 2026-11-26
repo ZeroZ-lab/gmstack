@@ -1,6 +1,6 @@
 ---
 name: review
-description: Independent code review of a diff — run by a fresh subagent that did not write the change, checking spec fit, correctness, test quality, standards, protected verification files, and whether the claimed evidence holds, with findings graded blocking / should-fix / nit and a clear verdict. Use when the user asks to review a branch, PR, or diff, or when a gmstack playbook reaches its independent-review step.
+description: Independent code review of a diff by a fresh subagent that did not write the change: spec fit, correctness, test quality, standards, protected verification files, and whether claimed evidence holds, with findings graded blocking / should-fix / nit and a verdict. Use when asked to review a branch, PR, or diff, or when a gmstack playbook reaches its independent-review step.
 ---
 
 # Review

@@ -1,6 +1,6 @@
 ---
 name: init
-description: Create a new software project, or bring an existing repo under the gmstack engineering checklist v1.2 — pick a tier and tags, generate the skeleton, AGENTS.md, CHECKLIST.md, a verify entry point, and CI, then run verify and record real results. Use when the user creates, initializes, or scaffolds a project or repo, or wants an existing one onboarded to gmstack. Not for one-off scripts or throwaway demos.
+description: Create a new software project, or bring an existing repo under the gmstack engineering checklist v1.2: pick a tier and tags, generate the skeleton, AGENTS.md, CHECKLIST.md, verify entry point, and CI, then run verify and record real results. Use when the user creates, initializes, or scaffolds a project or repo, or wants one onboarded to gmstack. Not for one-off scripts or throwaway demos.
 ---
 
 # Init

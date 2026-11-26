@@ -18,7 +18,7 @@ Tell `/gmstack:gm` what you want. It routes the task to a playbook, runs it step
 | `deslop` | Removes AI code slop from the current diff before commit, behavior unchanged, verify after |
 | `unslop` | Edits prose (reports, docs, PRs, commits; English and Chinese) to remove AI writing patterns |
 
-Playbooks (in `skills/gm/playbooks/`): `feature`, `bug-fix`, `refactor`, `investigation`, `prototype`, `review`, `init`, `gate` (can we release?), `progress` (where are we, what's next?), `handoff` (pause and resume).
+Playbooks live in `skills/gm/playbooks/`; the index in [skills/gm/references/playbook-index.md](skills/gm/references/playbook-index.md) lists each with when it applies.
 
 ## Automatic routing
 
@@ -47,7 +47,7 @@ when: the change adds or changes a command-line flag
 
 `gm` runs `skills/gm/scripts/check-playbooks.mjs` and reads the playbook through `--show <name>`, which prints it with every project change applied. When a gmstack upgrade rewords a step and an anchor no longer matches, the script fails and `gm` reports it instead of guessing. Format: [skills/gm/references/project-playbooks.md](skills/gm/references/project-playbooks.md). Run the check in CI to catch a broken anchor on upgrade.
 
-Principles (in `skills/gm/references/principles/`): 12 short rules the playbooks cite — smallest change, data shape first, prove it works, fix root causes, and more.
+Principles (in `skills/gm/references/principles.md`): 12 short rules the playbooks cite — smallest change, data shape first, prove it works, fix root causes, and more.
 
 ## Install from GitHub
 

@@ -1,6 +1,6 @@
 ---
 name: tdd
-description: Test-driven development for features and bug fixes — agree the seams, then loop one vertical slice at a time (failing test, watch it fail for the right reason, minimal code, watch it pass), keeping the red and green runs as evidence. Use when building a feature or fixing a bug test-first, when the user mentions TDD, red-green, or a regression test, or when a gmstack playbook reaches its implement step.
+description: Test-driven development for features and bug fixes: agree the seams, then loop one vertical slice at a time (failing test, watch it fail for the right reason, minimal code, watch it pass), keeping red and green runs as evidence. Use when building or fixing test-first, when the user mentions TDD, red-green, or a regression test, or when a gmstack playbook reaches its implement step.
 ---
 
 # TDD

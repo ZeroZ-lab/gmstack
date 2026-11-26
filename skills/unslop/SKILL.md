@@ -1,6 +1,6 @@
 ---
 name: unslop
-description: Edit prose to remove AI writing patterns — filler, hype vocabulary, hedging, formulaic structure, chatbot phrases — while keeping the meaning and the author's judgment. Covers replies, reports, docs, READMEs, PR descriptions, commit messages, and articles in English or Chinese. Use when writing or revising any prose that people will read, when the user asks to de-AI, tighten, or unslop text, or when a gmstack playbook writes its report.
+description: Edit prose to remove AI writing patterns (filler, hype words, hedging, formulaic structure, chatbot phrases) while keeping meaning and judgment. Covers replies, reports, docs, READMEs, PR descriptions, commit messages, articles, in English or Chinese. Use when writing or revising prose people will read, when asked to de-AI, tighten, or unslop text, or when a gmstack playbook writes its report.
 ---
 
 # Unslop

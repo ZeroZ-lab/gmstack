@@ -8,7 +8,7 @@ A prototype answers a question. It is thrown away or rebuilt properly; it never 
 
 1. Restate the question the prototype must answer, and the **decision criteria** written before building: what result picks which option (a number, a pass/fail behavior).
 2. Choose where it lives: a scratch directory outside the repo, or a branch named `proto/<slug>`. Never on the main branch, never mixed into product files.
-3. Time-box it: name the smallest experiment that can answer the question. For two or more competing approaches, build each to the same criteria (see [smallest-change](../references/principles/smallest-change.md) — the least code that measures the difference).
+3. Time-box it: name the smallest experiment that can answer the question. For two or more competing approaches, build each to the same criteria (see [smallest-change](../references/principles.md#smallest-change) — the least code that measures the difference).
 4. Build and run it. Record the commands and outputs that measure each criterion. For performance questions, measure more than once and note the spread.
 5. Decide against the criteria from step 1. If the result is inconclusive, say so; do not stretch it into a decision.
 6. Clean up: delete the scratch directory, or leave the `proto/` branch unmerged and say so. Prototype results never go into CHECKLIST.md.

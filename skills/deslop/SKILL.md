@@ -1,6 +1,6 @@
 ---
 name: deslop
-description: Remove AI-generated code slop from the current change before it is committed — narrating comments, defensive checks for impossible states, swallowed errors, casts that dodge the type checker, speculative options, debug leftovers — without changing behavior, then rerun verify. Use before committing, when the user asks to clean up or deslop a diff, or when a gmstack playbook reaches its pre-commit step.
+description: Remove AI code slop from the current change before commit (narrating comments, defensive checks for impossible states, swallowed errors, type-dodging casts, speculative options, debug leftovers) without changing behavior, then rerun verify. Use before committing, when asked to clean up or deslop a diff, or when a gmstack playbook reaches its pre-commit step.
 ---
 
 # Deslop
